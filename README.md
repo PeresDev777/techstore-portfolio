@@ -1,5 +1,7 @@
 # TechStore — Aplicação Web + Framework de QA Automation
 
+[![CI](https://github.com/PeresDev777/techstore-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/PeresDev777/techstore-portfolio/actions/workflows/ci.yml)
+
 Projeto de portfólio que reúne, no mesmo repositório, **uma aplicação real** e **a suíte de
 testes automatizados que a valida** — demonstrando as duas metades do trabalho de um QA
 Automation Engineer: entender/construir software e garantir sua qualidade.
