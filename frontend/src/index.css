@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens da TechStore.
+ * Tailwind v4 lê o bloco @theme e gera as utilities (bg-brand-600, text-ink-500...).
+ * Centralizar cor/raio/sombra aqui evita valores mágicos espalhados pelos componentes.
+ */
+@theme {
+  --color-brand-50: oklch(0.97 0.02 275);
+  --color-brand-100: oklch(0.93 0.05 275);
+  --color-brand-500: oklch(0.58 0.21 275);
+  --color-brand-600: oklch(0.51 0.22 275);
+  --color-brand-700: oklch(0.44 0.2 275);
+
+  --color-ink-400: oklch(0.62 0.02 265);
+  --color-ink-500: oklch(0.52 0.02 265);
+  --color-ink-700: oklch(0.34 0.03 265);
+  --color-ink-900: oklch(0.21 0.03 265);
+
+  --color-surface: oklch(1 0 0);
+  --color-surface-muted: oklch(0.98 0.005 265);
+
+  --color-danger-50: oklch(0.96 0.03 25);
+  --color-danger-600: oklch(0.55 0.2 25);
+  --color-danger-700: oklch(0.47 0.19 25);
+
+  --color-success-50: oklch(0.96 0.04 155);
+  --color-success-600: oklch(0.56 0.15 155);
+
+  --radius-card: 0.75rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface-muted text-ink-900 antialiased;
+    font-family:
+      'Inter',
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      sans-serif;
+  }
+
+  /* Foco visível e consistente — acessibilidade básica que a automação também consegue asseverar. */
+  :focus-visible {
+    @apply outline-brand-600 outline-2 outline-offset-2;
+  }
+}

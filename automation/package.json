@@ -1,0 +1,33 @@
+{
+  "name": "techstore-automation",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Suite de testes E2E da TechStore com Playwright + TypeScript",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:login": "playwright test tests/login",
+    "test:e2e": "playwright test tests/e2e",
+    "report": "playwright show-report reports/html",
+    "trace": "playwright show-trace",
+    "codegen": "playwright codegen http://localhost:4173",
+    "install:browsers": "playwright install --with-deps chromium",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,json}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.28.0",
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-playwright": "^2.2.0",
+    "prettier": "^3.5.3",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.33.0"
+  }
+}

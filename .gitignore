@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Playwright — evidencias sao geradas por execucao, nao versionadas
+automation/reports/
+automation/screenshots/
+automation/videos/
+automation/test-results/
+automation/playwright-report/
+automation/blob-report/
+automation/.auth/
