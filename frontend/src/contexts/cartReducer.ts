@@ -100,10 +100,7 @@ function assertNeverAction(action: never): never {
  */
 export function calculateTotals(state: CartState): CartTotals {
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0)
-  const subtotal = state.items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0,
-  )
+  const subtotal = state.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
 
   const shipping =
     state.items.length === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST

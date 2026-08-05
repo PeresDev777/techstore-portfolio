@@ -41,7 +41,11 @@ export interface CreateOrderInput {
   totals: CartTotals
 }
 
-/** Unidades federativas, para o seletor de estado. */
+/**
+ * Unidades federativas, para o seletor de estado.
+ * `prettier-ignore` mantém a lista em linhas compactas em vez de 27 linhas de uma sigla.
+ */
+// prettier-ignore
 export const BRAZILIAN_STATES = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
   'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',

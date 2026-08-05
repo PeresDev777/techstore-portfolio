@@ -41,7 +41,9 @@ export function CartSummary({ totals }: { totals: CartTotals }) {
           <dd
             data-testid="cart-shipping"
             data-price-cents={totals.shipping}
-            className={hasFreeShipping ? 'text-success-600 font-semibold' : 'text-ink-900 font-medium'}
+            className={
+              hasFreeShipping ? 'text-success-600 font-semibold' : 'text-ink-900 font-medium'
+            }
           >
             {hasFreeShipping ? 'Grátis' : formatCurrency(totals.shipping)}
           </dd>

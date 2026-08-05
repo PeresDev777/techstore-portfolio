@@ -34,9 +34,7 @@ export function Input({ label, error, className, ...rest }: InputProps) {
         className={cn(
           'rounded-lg bg-white px-3.5 py-2.5 text-sm ring-1 transition-shadow',
           'placeholder:text-ink-400 focus:ring-2 focus:outline-none',
-          error
-            ? 'ring-danger-600 focus:ring-danger-600'
-            : 'ring-ink-400/30 focus:ring-brand-600',
+          error ? 'ring-danger-600 focus:ring-danger-600' : 'ring-ink-400/30 focus:ring-brand-600',
           className,
         )}
         {...rest}

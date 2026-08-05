@@ -270,7 +270,11 @@ export function CheckoutPage() {
             </div>
 
             {errors.state && (
-              <span role="alert" data-testid="state-error" className="text-danger-700 text-xs font-medium">
+              <span
+                role="alert"
+                data-testid="state-error"
+                className="text-danger-700 text-xs font-medium"
+              >
                 {errors.state}
               </span>
             )}

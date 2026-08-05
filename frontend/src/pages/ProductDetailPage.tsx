@@ -97,7 +97,10 @@ export function ProductDetailPage() {
             {formatCurrency(product.price)}
           </p>
 
-          <p data-testid="product-detail-description" className="text-ink-700 text-sm leading-relaxed">
+          <p
+            data-testid="product-detail-description"
+            className="text-ink-700 text-sm leading-relaxed"
+          >
             {product.description}
           </p>
 

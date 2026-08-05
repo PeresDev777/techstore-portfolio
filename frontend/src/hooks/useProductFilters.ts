@@ -93,7 +93,10 @@ export function useProductFilters(): ProductFiltersState {
   }, [setSearchParams])
 
   const hasActiveFilters =
-    query.search !== '' || query.category !== null || query.inStockOnly || query.sort !== PRODUCT_SORT.relevance
+    query.search !== '' ||
+    query.category !== null ||
+    query.inStockOnly ||
+    query.sort !== PRODUCT_SORT.relevance
 
   return {
     query,

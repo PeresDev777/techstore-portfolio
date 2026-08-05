@@ -17,6 +17,7 @@
     "install:browsers": "playwright install --with-deps chromium",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,json}\"",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

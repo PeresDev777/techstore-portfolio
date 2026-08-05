@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
+import { AUTH_STATE_FILE } from './fixtures/paths.ts'
+
 const IS_CI = !!process.env.CI
 
 /**
@@ -50,16 +52,30 @@ export default defineConfig({
   },
 
   projects: [
+    /*
+     * Autentica uma vez e grava o estado do navegador em disco.
+     * Os testes dependem deste projeto e partem já logados — ver `fixtures/auth.setup.ts`.
+     */
+    {
+      name: 'setup',
+      /* O setup vive em `fixtures/`, fora do `testDir` global — nao e um cenario de teste. */
+      testDir: './fixtures',
+      testMatch: /auth\.setup\.ts/,
+    },
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH_STATE_FILE,
+      },
+      dependencies: ['setup'],
     },
     /*
      * Firefox/WebKit e mobile ficam comentados ate a suite estar estavel em chromium.
      * Ativar cedo demais multiplica o custo de manutencao sem ganho de cobertura real.
      */
-    // { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    // { name: 'mobile-chrome', use: { ...devices['Pixel 7'] } },
+    // { name: 'firefox', use: { ...devices['Desktop Firefox'], storageState: AUTH_STATE_FILE }, dependencies: ['setup'] },
+    // { name: 'mobile-chrome', use: { ...devices['Pixel 7'], storageState: AUTH_STATE_FILE }, dependencies: ['setup'] },
   ],
 
   /*

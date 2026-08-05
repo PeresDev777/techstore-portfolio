@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Permite disparar manualmente pela aba Actions.
+  workflow_dispatch:
+
+# Um push novo na mesma branch cancela a execucao anterior: nao ha valor em
+# terminar o CI de um commit que ja foi substituido.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # Job rapido e barato. Roda em paralelo com o E2E para dar retorno em segundos,
+  # em vez de esperar o browser subir para descobrir um erro de tipo.
+  quality:
+    name: Lint, tipos e testes unitarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # Cacheia o diretorio do npm usando os dois lockfiles como chave.
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            automation/package-lock.json
+
+      - name: Instalar dependencias do frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Instalar dependencias da automacao
+        working-directory: automation
+        run: npm ci
+
+      - name: Lint do frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Formatacao do frontend
+        working-directory: frontend
+        run: npm run format:check
+
+      - name: Lint da automacao
+        working-directory: automation
+        run: npm run lint
+
+      - name: Formatacao da automacao
+        working-directory: automation
+        run: npm run format:check
+
+      - name: Checagem de tipos da automacao
+        working-directory: automation
+        run: npm run typecheck
+
+      - name: Testes unitarios
+        working-directory: frontend
+        run: npm run test:unit
+
+  e2e:
+    name: Testes E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            automation/package-lock.json
+
+      - name: Instalar dependencias do frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Instalar dependencias da automacao
+        working-directory: automation
+        run: npm ci
+
+      # Os binarios do browser (~150 MB) sao cacheados pela versao do Playwright
+      # declarada no lockfile: sem isso, cada execucao baixaria tudo de novo.
+      - name: Ler versao do Playwright
+        id: playwright
+        working-directory: automation
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Restaurar cache dos browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Instalar browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: automation
+        run: npx playwright install --with-deps chromium
+
+      # Mesmo com cache do browser, as dependencias de sistema precisam existir.
+      - name: Instalar dependencias de sistema do browser
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: automation
+        run: npx playwright install-deps chromium
+
+      # O `webServer` do Playwright roda `npm run preview` quando CI=true.
+      # O build precisa existir antes: construir aqui deixa a falha de build separada
+      # da falha de teste, em vez de mascarada dentro do log do webServer.
+      - name: Build da aplicacao
+        working-directory: frontend
+        run: npm run build
+
+      - name: Executar a suite
+        working-directory: automation
+        run: npm test
+
+      # `always()`: o relatorio e MAIS util quando a suite falha. Sem isso, o artifact
+      # so existiria nas execucoes verdes, que sao justamente as que nao precisam dele.
+      - name: Publicar HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: automation/reports/html
+          retention-days: 14
+
+      - name: Publicar resultados JUnit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-results
+          path: automation/reports/junit
+          retention-days: 14
+
+      # Traces, videos e screenshots so existem quando algo falhou.
+      - name: Publicar evidencias de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencias-de-falha
+          path: automation/test-results
+          retention-days: 14

@@ -44,9 +44,7 @@ export function useProducts(query: ProductQuery): UseProductsResult {
       })
       .catch((caught: unknown) => {
         if (!isCurrent) return
-        setError(
-          isApiError(caught) ? caught.message : 'Não foi possível carregar os produtos.',
-        )
+        setError(isApiError(caught) ? caught.message : 'Não foi possível carregar os produtos.')
         setProducts([])
       })
       .finally(() => {

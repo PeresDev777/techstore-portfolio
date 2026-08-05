@@ -75,7 +75,11 @@ export function ProductsPage() {
         onClear={handleClearFilters}
       />
 
-      {error && <Alert tone="error" data-testid="products-error">{error}</Alert>}
+      {error && (
+        <Alert tone="error" data-testid="products-error">
+          {error}
+        </Alert>
+      )}
 
       {/*
         Contador sempre visível quando há resultado: dá ao usuário — e ao teste — um
@@ -106,7 +110,11 @@ export function ProductsPage() {
           description="Não encontramos resultados para os filtros aplicados. Tente outro termo ou remova alguns filtros."
           action={
             hasActiveFilters && (
-              <Button variant="secondary" onClick={handleClearFilters} data-testid="empty-clear-filters">
+              <Button
+                variant="secondary"
+                onClick={handleClearFilters}
+                data-testid="empty-clear-filters"
+              >
                 Limpar filtros
               </Button>
             )

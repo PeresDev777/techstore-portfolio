@@ -4,8 +4,8 @@ Projeto de portfólio que reúne, no mesmo repositório, **uma aplicação real*
 testes automatizados que a valida** — demonstrando as duas metades do trabalho de um QA
 Automation Engineer: entender/construir software e garantir sua qualidade.
 
-> 🚧 **Em construção.** Estrutura inicial concluída. Funcionalidades sendo desenvolvidas
-> incrementalmente — veja [Roadmap](#roadmap).
+**28 testes unitários** (~180 ms, sem navegador) · **79 cenários E2E** em Playwright ·
+**19 decisões arquiteturais documentadas** · CI em dois jobs paralelos.
 
 ---
 
@@ -104,6 +104,37 @@ npm run test:ui       # modo UI interativo do Playwright
 npm run test:e2e      # apenas o fluxo end-to-end
 ```
 
+### Como a suíte está organizada
+
+```
+automation/
+├── pages/          Page Objects — expõem AÇÕES de negócio, nunca seletores
+│   ├── BasePage.ts         abertura, espera de prontidão, localização por data-testid
+│   └── components/         componentes reutilizados (ex.: HeaderComponent)
+├── fixtures/       injeção dos page objects + autenticação via storageState
+├── data/           massa de teste nomeada por CENÁRIO (USERS.disabled, CPF.invalidCheckDigit)
+├── utils/          rotas espelhadas e leitura de valores monetários
+└── tests/          cenários por feature + um fluxo E2E completo
+```
+
+**Autenticação acontece uma única vez.** Um projeto de setup faz login e grava o estado do
+navegador; todos os testes partem autenticados. Os cenários de login, rota protegida e
+logout importam `fixtures/anonymous.ts` e começam deslogados. Detalhes no
+[ADR-016](docs/architecture.md).
+
+### Cobertura de cenários
+
+| Área | Arquivo | Cenários |
+| --- | --- | --- |
+| Login | `tests/login/login.spec.ts` | válido, e-mail inexistente, senha errada, conta desativada, campos obrigatórios, logout, sessão persistida |
+| Rotas protegidas | `tests/login/protected-routes.spec.ts` | acesso sem sessão, retorno ao destino após login, logout sem vazamento entre contas |
+| Listagem | `tests/products/product-listing.spec.ts` | catálogo, filtros, ordenações, estado na URL, parâmetro inválido |
+| Produto | `tests/products/product-detail.spec.ts` | dados, imagem realmente carregada, esgotado, relacionados, limite de estoque |
+| Pesquisa | `tests/search/search.spec.ts` | existente, sem acento, termos fora de ordem, sem resultado, limpar |
+| Carrinho | `tests/cart/cart.spec.ts` | adicionar, remover, quantidade, totais, frete grátis, persistência, isolamento por usuário |
+| Checkout | `tests/checkout/*.spec.ts` | obrigatórios, CPF por dígito verificador, máscaras, pedido, número único |
+| E2E | `tests/e2e/purchase-flow.spec.ts` | jornada completa em passos nomeados |
+
 ### Credenciais de demonstração
 
 | E-mail                     | Senha       | Cenário                          |
@@ -136,10 +167,25 @@ Evidências geradas por execução:
 
 ## Pipeline
 
-O workflow em `.github/workflows/` instala as dependências dos dois projetos, faz o build da
-aplicação, executa a suíte e publica o HTML Report e os traces como artifacts.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em push e pull request para `main`,
+em **dois jobs paralelos**:
 
-_(Será configurado na etapa de automação.)_
+| Job | O que faz | Por quê |
+| --- | --- | --- |
+| `quality` | lint, formatação, tipos e testes unitários | Retorno em segundos — não faz sentido subir um navegador para descobrir um erro de tipo |
+| `e2e` | build da aplicação + suíte Playwright | Valida o comportamento real no navegador |
+
+Detalhes que valem notar:
+
+- **Cache dos browsers** por versão do Playwright — sem ele, cada execução baixaria ~150 MB.
+- **`concurrency` com `cancel-in-progress`** — um push novo cancela a execução anterior da
+  mesma branch.
+- **Artifacts com `if: always()`** — o relatório é mais útil quando a suíte falha; publicá-lo
+  só no verde seria publicá-lo exatamente quando ninguém precisa.
+- **Evidências de falha (`if: failure()`)** — traces, vídeos e screenshots só existem quando
+  algo quebrou.
+- O build roda como passo próprio, separado do `webServer`, para que uma falha de build não
+  fique escondida dentro do log do servidor.
 
 ---
 
@@ -155,8 +201,8 @@ _(Será configurado na etapa de automação.)_
   - [x] Carrinho
   - [x] Checkout
   - [x] Página de sucesso
-- [ ] **Etapa 4** — Framework de automação e cenários
-- [ ] **Etapa 5** — Pipeline de CI
+- [x] **Etapa 4** — Framework de automação e cenários
+- [x] **Etapa 5** — Pipeline de CI
 
 ---
 

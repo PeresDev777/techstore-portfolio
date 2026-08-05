@@ -4,6 +4,8 @@
     "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    /* O transpilador do Playwright resolve imports com extensao .ts explicita. */
+    "allowImportingTsExtensions": true,
     "types": ["node"],
 
     "strict": true,

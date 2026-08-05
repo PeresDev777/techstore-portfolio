@@ -20,12 +20,16 @@ export function CartIndicator() {
       to={ROUTES.cart}
       data-testid="header-cart"
       aria-label={
-        hasItems ? `Carrinho com ${totals.itemCount} ${totals.itemCount === 1 ? 'item' : 'itens'}` : 'Carrinho vazio'
+        hasItems
+          ? `Carrinho com ${totals.itemCount} ${totals.itemCount === 1 ? 'item' : 'itens'}`
+          : 'Carrinho vazio'
       }
       className={({ isActive }) =>
         cn(
           'relative flex size-10 items-center justify-center rounded-lg transition-colors',
-          isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-500 hover:text-ink-900 hover:bg-ink-400/10',
+          isActive
+            ? 'bg-brand-50 text-brand-700'
+            : 'text-ink-500 hover:text-ink-900 hover:bg-ink-400/10',
         )
       }
     >

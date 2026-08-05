@@ -269,7 +269,74 @@ exatamente o que separa um teste E2E de um teste de componente.
 
 ---
 
-## ADR-016 — Política de evidências
+## ADR-016 — Autenticação uma única vez, via `storageState`
+
+**Contexto.** Quase todo cenário exige um usuário logado. Fazer login pela UI em cada
+teste custa ~1 s por teste e acopla a suíte inteira a uma única funcionalidade.
+
+**Decisão.** Um **projeto de setup** (`fixtures/auth.setup.ts`) autentica uma vez e grava
+o estado do navegador em `.auth/user.json`. O projeto `chromium` declara
+`dependencies: ['setup']` e `storageState`, então todo teste começa autenticado.
+
+Os cenários que precisam do oposto — login, rota protegida, logout — importam
+`fixtures/anonymous.ts`, que sobrescreve `storageState` com um estado vazio.
+
+**Consequência.** Dois ganhos, sendo o segundo o mais importante:
+
+1. **Velocidade**: o login deixa de ser repetido em ~70 testes.
+2. **Isolamento de falha**: se o login quebrar, falham os testes de login — não a suíte
+   inteira. Uma suíte toda vermelha esconde qual é o defeito real.
+
+O estado gravado contém um token de sessão: `.auth/` está no `.gitignore`.
+
+---
+
+## ADR-017 — Page Objects expõem ações, não seletores
+
+**Contexto.** Sem disciplina, page objects viram sacos de locators públicos e os specs
+voltam a manipular seletores.
+
+**Decisão.** `BasePage` concentra abertura, espera de prontidão e localização por
+`data-testid`. As subclasses expõem **ações de negócio** (`loginAs`, `addToCartWithQuantity`,
+`placeOrder`) e **asserções de domínio** (`expectProductDetails`, `expectTotalsAreConsistent`).
+
+Regra prática adotada: se um spec precisa alcançar um seletor cru, falta um método no page
+object.
+
+**Consequência.** Os specs leem como especificação de comportamento. Uma mudança de UI se
+resolve em um arquivo. E os page objects ficam compostos como a aplicação — `HeaderComponent`
+é um componente reutilizado por todas as páginas autenticadas, não uma página.
+
+Efeito colateral no lint: a regra `playwright/expect-expect` procura `expect(...)` no corpo
+do teste e não enxerga asserções encapsuladas. A configuração enumera os métodos de
+asserção do POM (`assertFunctionNames`) — o matcher do plugin compara por igualdade exata e
+não aceita curinga. Assim a regra continua pegando o caso que importa: um teste que executa
+passos e não verifica nada.
+
+---
+
+## ADR-018 — Sincronizar pela URL, não pelo indicador de carregamento
+
+**Contexto.** O teste de ordenação lia a grade de produtos **vazia** e falhava de forma
+intermitente.
+
+**Decisão.** Os métodos de filtro do `ProductsPage` esperam a **query string** refletir a
+mudança antes de prosseguir, e só então aguardam a grade estabilizar.
+
+**Consequência.** Esperar apenas "o skeleton sumiu" é uma corrida: logo após o clique o
+skeleton ainda **não apareceu**, a asserção passa contra o resultado anterior e a leitura
+seguinte pega a grade no meio da troca. A URL, por outro lado, muda de forma determinística
+e é um ponto de sincronização confiável.
+
+O `waitForResults` também ficou com **duas** condições: o skeleton saiu **e** a tela está em
+um estado terminal (grade com produtos ou estado vazio). Só a primeira deixaria passar o
+instante em que a grade foi desmontada e ainda não voltou.
+
+Generalizando: **espere pela causa observável, não pelo sintoma transitório.**
+
+---
+
+## ADR-019 — Política de evidências
 
 **Contexto.** Screenshot e vídeo de todos os testes geram artifacts enormes e sem valor
 quando tudo passa.

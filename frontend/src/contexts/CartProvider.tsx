@@ -77,8 +77,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [state.items, userId])
 
   const getQuantity = useCallback(
-    (productId: string) =>
-      state.items.find((item) => item.product.id === productId)?.quantity ?? 0,
+    (productId: string) => state.items.find((item) => item.product.id === productId)?.quantity ?? 0,
     [state.items],
   )
 
