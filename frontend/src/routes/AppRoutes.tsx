@@ -2,9 +2,11 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layout/AppLayout'
 import { CartPage } from '@/pages/CartPage'
+import { CheckoutPage } from '@/pages/CheckoutPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { OrderSuccessPage } from '@/pages/OrderSuccessPage'
 import { ProductDetailPage } from '@/pages/ProductDetailPage'
 import { ProductsPage } from '@/pages/ProductsPage'
 import { PrivateRoute } from '@/routes/PrivateRoute'
@@ -30,6 +32,8 @@ export function AppRoutes() {
           <Route path={ROUTES.products} element={<ProductsPage />} />
           <Route path={ROUTES.productDetail} element={<ProductDetailPage />} />
           <Route path={ROUTES.cart} element={<CartPage />} />
+          <Route path={ROUTES.checkout} element={<CheckoutPage />} />
+          <Route path={ROUTES.orderSuccess} element={<OrderSuccessPage />} />
         </Route>
       </Route>
 

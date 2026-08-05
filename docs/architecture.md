@@ -211,7 +211,65 @@ responsabilidade única do `PrivateRoute`. Antes havia duas navegações concorr
 
 ---
 
-## ADR-013 — Política de evidências
+## ADR-013 — Dado e formatação são coisas separadas
+
+**Contexto.** CPF, CEP e telefone são exibidos com máscara. O caminho fácil é guardar a
+string mascarada no estado.
+
+**Decisão.** O estado guarda **apenas dígitos**; a máscara existe só na renderização
+(`utils/masks.ts`). A validação e o envio recebem dígitos puros.
+
+**Consequência.** Validar `"123.456.789-09"` exigiria limpar a string antes, e um CPF
+colado de outra fonte com pontuação diferente falharia. Guardando dígitos, a validação
+fica trivial e a apresentação é responsabilidade exclusiva da UI.
+
+O CPF é validado pelo **algoritmo real de dígitos verificadores**, não por contagem de
+caracteres — checar só o comprimento aceitaria `11111111111`, que é exatamente o que se
+digita para furar um formulário.
+
+---
+
+## ADR-014 — `useForm` para o ciclo de formulário
+
+**Contexto.** Login e Checkout repetiam o mesmo desenho: valores, erros por campo, erro
+geral, estado de envio, validação no submit e limpeza do erro ao corrigir. Com 11 campos
+no checkout, replicar isso à mão seria a maior fonte de inconsistência da aplicação.
+
+**Decisão.** Extrair o ciclo para `hooks/useForm.ts`. O hook não conhece máscara, layout
+nem regra de negócio: recebe `validate` e `onSubmit`. Quem decide o que é válido é a tela.
+
+**Consequência.** As duas telas passaram a se comportar de forma idêntica. Uma armadilha
+resolvida de uma vez só: o teste de "formulário válido" usa
+`Object.values(errors).some(Boolean)` e não `Object.keys(errors).length`, porque corrigir
+um campo grava `undefined` na chave em vez de removê-la — contar chaves daria "inválido"
+para sempre depois do primeiro erro.
+
+---
+
+## ADR-015 — Estado assíncrono precisa de um sinal de carregamento
+
+**Contexto.** Ao abrir `/checkout` com um load completo (refresh ou link direto), a
+guarda "carrinho vazio → volte para o carrinho" disparava e expulsava quem **tinha**
+itens: a hidratação do carrinho é assíncrona e o primeiro render vê a lista vazia.
+
+**Decisão.** O `CartContext` expõe `isHydrating`, e toda tela que decide algo com base em
+"carrinho vazio" espera esse sinal. O provider só conclui a hidratação depois que a sessão
+foi restaurada — antes disso não se sabe *qual* carrinho carregar.
+
+**Consequência.** É a **segunda ocorrência da mesma classe de bug** neste projeto; a
+primeira foi `isRestoringSession` na autenticação (ADR-004). O padrão geral:
+
+> Toda fonte de dados assíncrona precisa de três estados distinguíveis — carregando,
+> vazia e preenchida. Colapsar "carregando" em "vazia" produz decisões tomadas cedo
+> demais, e o sintoma é sempre um redirecionamento ou uma tela em branco indevida.
+
+Vale notar como o bug apareceu: os testes que navegavam por link passavam, e só os que
+faziam `page.goto()` falhavam. A diferença entre navegação client-side e load completo é
+exatamente o que separa um teste E2E de um teste de componente.
+
+---
+
+## ADR-016 — Política de evidências
 
 **Contexto.** Screenshot e vídeo de todos os testes geram artifacts enormes e sem valor
 quando tudo passa.

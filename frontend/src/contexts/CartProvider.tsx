@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 
 import { CartContext, type CartContextValue } from '@/contexts/cartContext'
 import { calculateTotals, cartReducer, EMPTY_CART, parseStoredItems } from '@/contexts/cartReducer'
@@ -17,8 +25,9 @@ function storageKey(userId: string): string {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
+  const { user, isRestoringSession } = useAuth()
   const [state, dispatch] = useReducer(cartReducer, EMPTY_CART)
+  const [isCartLoaded, setIsCartLoaded] = useState(false)
 
   const userId = user?.id ?? null
 
@@ -27,16 +36,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
    *
    * Depende de `userId` (string) e não do objeto `user`: um novo objeto com o mesmo id
    * dispararia a reidratação de novo e descartaria alterações não persistidas.
+   *
+   * Enquanto a sessão está sendo restaurada ainda não se sabe QUAL carrinho carregar —
+   * concluir a hidratação aqui reportaria "carrinho vazio" para uma conta que tem itens.
    */
   useEffect(() => {
+    if (isRestoringSession) return
+
     if (!userId) {
       dispatch({ type: 'CLEAR' })
+      setIsCartLoaded(true)
       return
     }
 
     const stored = readJson<unknown>(storageKey(userId))
     dispatch({ type: 'REPLACE', items: parseStoredItems(stored) })
-  }, [userId])
+    setIsCartLoaded(true)
+  }, [userId, isRestoringSession])
 
   /*
    * Persiste a cada mudança — exceto no primeiro render após a troca de usuário, quando o
@@ -85,17 +101,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Totais recalculados só quando os itens mudam, não a cada render.
   const totals = useMemo(() => calculateTotals(state), [state])
 
+  const isHydrating = isRestoringSession || !isCartLoaded
+
   const value = useMemo<CartContextValue>(
     () => ({
       items: state.items,
       totals,
+      isHydrating,
       getQuantity,
       addItem,
       removeItem,
       updateQuantity,
       clear,
     }),
-    [state.items, totals, getQuantity, addItem, removeItem, updateQuantity, clear],
+    [state.items, totals, isHydrating, getQuantity, addItem, removeItem, updateQuantity, clear],
   )
 
   return <CartContext value={value}>{children}</CartContext>

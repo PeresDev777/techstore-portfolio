@@ -4,11 +4,21 @@ import { CartItemRow } from '@/components/cart/CartItemRow'
 import { CartSummary } from '@/components/cart/CartSummary'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { FullPageSpinner } from '@/components/ui/FullPageSpinner'
 import { useCart } from '@/hooks/useCart'
 import { ROUTES } from '@/routes/paths'
 
 export function CartPage() {
-  const { items, totals, clear } = useCart()
+  const { items, totals, isHydrating, clear } = useCart()
+
+  /*
+   * Mesmo motivo do checkout: em um load completo os itens chegam depois do primeiro
+   * render. Sem esta guarda, quem recarrega a página com o carrinho cheio vê o estado
+   * "carrinho vazio" piscar antes dos produtos aparecerem.
+   */
+  if (isHydrating) {
+    return <FullPageSpinner label="Carregando seu carrinho..." />
+  }
 
   if (items.length === 0) {
     return (

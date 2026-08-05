@@ -147,14 +147,14 @@ _(Será configurado na etapa de automação.)_
 
 - [x] **Etapa 1** — Arquitetura definida
 - [x] **Etapa 2** — Estrutura inicial, configurações e tooling
-- [ ] **Etapa 3** — Aplicação, funcionalidade por funcionalidade
+- [x] **Etapa 3** — Aplicação, funcionalidade por funcionalidade
   - [x] Autenticação (login, logout, validação, mensagens de erro, rota protegida)
   - [x] Dashboard
   - [x] Produtos (listagem, pesquisa, filtros, ordenação)
   - [x] Página do produto
   - [x] Carrinho
-  - [ ] Checkout
-  - [ ] Página de sucesso
+  - [x] Checkout
+  - [x] Página de sucesso
 - [ ] **Etapa 4** — Framework de automação e cenários
 - [ ] **Etapa 5** — Pipeline de CI
 
