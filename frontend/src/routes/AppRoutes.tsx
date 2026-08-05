@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layout/AppLayout'
+import { CartPage } from '@/pages/CartPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -28,6 +29,7 @@ export function AppRoutes() {
           <Route path={ROUTES.dashboard} element={<DashboardPage />} />
           <Route path={ROUTES.products} element={<ProductsPage />} />
           <Route path={ROUTES.productDetail} element={<ProductDetailPage />} />
+          <Route path={ROUTES.cart} element={<CartPage />} />
         </Route>
       </Route>
 

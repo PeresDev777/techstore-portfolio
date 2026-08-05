@@ -85,7 +85,15 @@ cd frontend
 npm run dev
 ```
 
-**Testes automatizados** — o Playwright sobe o build de produção da aplicação
+**Testes unitários** — regras de negócio puras, no runner nativo do Node (sem dependências
+extras, sem navegador):
+
+```bash
+cd frontend
+npm run test:unit
+```
+
+**Testes automatizados (E2E)** — o Playwright sobe o build de produção da aplicação
 automaticamente (`vite preview` em http://localhost:4173); não é preciso iniciar nada antes.
 
 ```bash
@@ -144,7 +152,7 @@ _(Será configurado na etapa de automação.)_
   - [x] Dashboard
   - [x] Produtos (listagem, pesquisa, filtros, ordenação)
   - [x] Página do produto
-  - [ ] Carrinho
+  - [x] Carrinho
   - [ ] Checkout
   - [ ] Página de sucesso
 - [ ] **Etapa 4** — Framework de automação e cenários

@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { ProductCard } from '@/components/products/ProductCard'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
+import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { Rating } from '@/components/ui/Rating'
 import { useProduct } from '@/hooks/useProduct'
 import { ROUTES } from '@/routes/paths'
@@ -14,6 +17,13 @@ export function ProductDetailPage() {
   // `useParams` devolve `string | undefined`: a rota pode ser montada sem o parâmetro.
   const { productId } = useParams<{ productId: string }>()
   const { product, related, isLoading, error } = useProduct(productId)
+
+  /*
+   * Quantidade escolhida ANTES de adicionar — não é o estado do carrinho.
+   * A chave `productId` no elemento reseta o valor ao navegar para outro produto, sem
+   * precisar de um `useEffect` de sincronização.
+   */
+  const [quantity, setQuantity] = useState(1)
 
   if (isLoading) {
     return (
@@ -100,6 +110,23 @@ export function ProductDetailPage() {
               <Badge tone="neutral">{product.stock} unidades em estoque</Badge>
             )}
           </div>
+
+          {!isOutOfStock && (
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <QuantityStepper
+                key={product.id}
+                value={quantity}
+                max={product.stock}
+                onChange={setQuantity}
+                data-testid="product-detail-quantity"
+              />
+              <AddToCartButton
+                product={product}
+                quantity={quantity}
+                testId="product-detail-add-to-cart"
+              />
+            </div>
+          )}
         </div>
       </div>
 

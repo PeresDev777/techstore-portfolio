@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 
+import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { Badge } from '@/components/ui/Badge'
 import { Rating } from '@/components/ui/Rating'
 import { productDetailPath } from '@/routes/paths'
@@ -69,6 +70,11 @@ export function ProductCard({ product }: { product: Product }) {
           </p>
         </div>
       </Link>
+
+      {/* Fora do <Link>: um botão dentro de âncora é HTML inválido e confunde leitores de tela. */}
+      <div className="px-4 pb-4">
+        <AddToCartButton product={product} fullWidth />
+      </div>
     </article>
   )
 }

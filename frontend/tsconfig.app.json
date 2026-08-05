@@ -33,5 +33,11 @@
     "noUncheckedSideEffectImports": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  /*
+   * Testes unitários rodam no Node, não no browser: precisam de outros tipos globais.
+   * Ficam em `tsconfig.test.json` para que o código da aplicação não ganhe acesso
+   * acidental às APIs do Node — o que compilaria aqui e quebraria em produção.
+   */
+  "exclude": ["src/**/*.test.ts"]
 }

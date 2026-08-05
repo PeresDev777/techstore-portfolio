@@ -166,7 +166,52 @@ em produção — por isso a latência simulada do ADR-002 existe.
 
 ---
 
-## ADR-011 — Política de evidências
+## ADR-011 — Carrinho como redutor puro
+
+**Contexto.** O carrinho concentra as regras de negócio mais densas da aplicação: mesclar
+item repetido, respeitar estoque, remover ao zerar quantidade, calcular totais.
+
+**Decisão.** Toda essa lógica vive em `cartReducer.ts` — funções **puras**, sem
+`import` de React. O `CartProvider` apenas conecta o redutor ao React e cuida da
+persistência.
+
+**Consequência.** As regras são verificadas por testes unitários que rodam em ~130 ms no
+runner nativo do Node (`npm run test:unit`), sem framework de teste, sem jsdom e sem
+navegador. O Playwright fica reservado para o que só o navegador prova: navegação,
+persistência real e integração entre telas. É a pirâmide de testes na prática — e o motivo
+pelo qual "testar mais" não precisa significar "suíte mais lenta".
+
+Casos cobertos no nível unitário que seriam caros no E2E: limite de estoque aplicado sobre
+a **soma** (2 + 3 com estoque 3 resulta em 3, não 5), imutabilidade do estado anterior,
+e descarte de dados corrompidos vindos do `localStorage`.
+
+---
+
+## ADR-012 — Carrinho isolado por usuário e logout à prova de falha
+
+**Contexto.** Dois problemas apareceram ao testar troca de usuário no mesmo navegador.
+
+**Decisão.**
+
+1. **Chave de persistência por usuário** (`techstore:cart:<userId>`). Sem o id na chave,
+   dois usuários no mesmo navegador compartilhariam o carrinho.
+
+2. **`PrivateRoute` só grava `state.from` quando não houve sessão neste mount.** Antes,
+   o logout gravava a última rota do usuário que saiu, e o **próximo** usuário a logar
+   aterrissava nela — vazamento de contexto entre contas em um computador compartilhado.
+
+3. **`logout()` encerra a sessão local ANTES da chamada remota.** Na ordem inversa,
+   qualquer interrupção (reload, aba fechada, rede caindo) matava o JavaScript antes da
+   limpeza e o usuário permanecia logado apesar de ter pedido para sair. Em autenticação,
+   a falha precisa cair para o lado seguro.
+
+**Consequência.** O `Header` deixou de navegar no logout: o redirecionamento é
+responsabilidade única do `PrivateRoute`. Antes havia duas navegações concorrentes para
+`/login` e a vencedora era imprevisível — origem do item 2.
+
+---
+
+## ADR-013 — Política de evidências
 
 **Contexto.** Screenshot e vídeo de todos os testes geram artifacts enormes e sem valor
 quando tudo passa.

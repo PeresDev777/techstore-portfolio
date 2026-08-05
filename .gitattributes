@@ -1,0 +1,9 @@
+# Normaliza fim de linha no repositorio (LF), independente do SO de quem clona.
+# Sem isso, Windows e Linux produzem diffs falsos em arquivos inteiros.
+* text=auto eol=lf
+
+# Binarios nao devem sofrer conversao.
+*.png binary
+*.jpg binary
+*.webm binary
+*.zip binary

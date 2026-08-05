@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 
+import { CartIndicator } from '@/components/layout/CartIndicator'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/routes/paths'
@@ -20,14 +21,19 @@ const NAV_ITEMS = [
  */
 export function Header() {
   const { user, logout } = useAuth()
-  const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
+  /*
+   * Encerra a sessão e não navega.
+   *
+   * O redirecionamento é responsabilidade do `PrivateRoute`, que reage à sessão cair.
+   * Navegar aqui também criava duas navegações concorrentes para `/login` — e a que
+   * vencia era imprevisível, o que fazia o `state.from` sobreviver ao logout.
+   */
   async function handleLogout() {
     setIsLoggingOut(true)
     try {
       await logout()
-      void navigate(ROUTES.login, { replace: true })
     } finally {
       setIsLoggingOut(false)
     }
@@ -68,6 +74,8 @@ export function Header() {
           <span data-testid="header-username" className="text-ink-500 hidden text-sm sm:inline">
             {user?.name}
           </span>
+
+          <CartIndicator />
 
           <Button
             variant="secondary"

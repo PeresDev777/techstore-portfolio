@@ -67,13 +67,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session.user)
   }, [])
 
+  /*
+   * Encerra a sessão LOCAL antes da chamada remota — nesta ordem, de propósito.
+   *
+   * Com a ordem inversa, qualquer interrupção durante a chamada (reload, aba fechada,
+   * rede caindo) mataria o JavaScript antes da limpeza e o usuário permaneceria logado,
+   * apesar de ter pedido para sair. Em autenticação, a falha tem que cair para o lado
+   * seguro: encerrar primeiro e tratar a invalidação remota como best-effort.
+   */
   const logout = useCallback(async () => {
+    remove(SESSION_STORAGE_KEY)
+    setUser(null)
+
     try {
       await authService.logout()
-    } finally {
-      // A sessão local é limpa mesmo se a chamada falhar: o usuário pediu para sair.
-      remove(SESSION_STORAGE_KEY)
-      setUser(null)
+    } catch {
+      // A sessão local já foi encerrada; falha na invalidação remota não reverte isso.
     }
   }, [])
 
