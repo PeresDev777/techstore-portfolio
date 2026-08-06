@@ -1,5 +1,7 @@
 import { test as base } from '@playwright/test'
 
+import { resetDatabase } from '@utils/api'
+
 import { CartPage } from '@pages/CartPage'
 import { CheckoutPage } from '@pages/CheckoutPage'
 import { DashboardPage } from '@pages/DashboardPage'
@@ -15,6 +17,21 @@ import { ProductsPage } from '@pages/ProductsPage'
  * que não descreve o cenário. Com elas, o spec declara o que precisa na assinatura do
  * teste e o Playwright instancia sob demanda: um page object não listado nunca é criado.
  */
+/**
+ * Estado do servidor, reiniciado antes de CADA teste.
+ *
+ * `auto: true` faz a fixture rodar sem que o spec a declare — e aqui isso e proposital.
+ * Um teste que esquecesse de pedir o reset falharia de forma intermitente, dependendo da
+ * ordem de execucao: o pior tipo de falha, porque parece flakiness e nao e.
+ *
+ * Antes da API, o isolamento era de graca — cada teste ganhava um contexto de navegador
+ * novo e, com ele, um localStorage vazio. Com carrinho e pedidos no servidor, o
+ * isolamento passou a ser trabalho explicito. E o preco de testar o sistema de verdade.
+ */
+interface ServerState {
+  freshDatabase: void
+}
+
 interface Pages {
   loginPage: LoginPage
   dashboardPage: DashboardPage
@@ -25,7 +42,15 @@ interface Pages {
   orderSuccessPage: OrderSuccessPage
 }
 
-export const test = base.extend<Pages>({
+export const test = base.extend<Pages & ServerState>({
+  freshDatabase: [
+    async ({ request }, use) => {
+      await resetDatabase(request)
+      await use()
+    },
+    { auto: true },
+  ],
+
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page))
   },

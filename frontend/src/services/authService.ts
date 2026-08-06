@@ -1,66 +1,79 @@
-import { USER_RECORDS } from '@/data/users'
-import { API_ERROR_CODE, ApiError } from '@/services/apiError'
-import { delay, respondWith } from '@/services/http'
+import { clearSession, readSession, request, writeSession } from '@/services/http'
 import type { AuthSession, Credentials, User } from '@/types/user'
 
 /**
  * Serviço de autenticação.
  *
- * Único ponto da aplicação que conhece a origem dos dados de usuário. Componentes e
- * contextos falam com este módulo, nunca com `data/users.ts` diretamente.
+ * Único ponto da aplicação que conhece as rotas de sessão da API. Componentes e contextos
+ * falam com este módulo — nenhum deles monta uma requisição.
  */
 
-/** Gera um token opaco. Formato irrelevante para o mock; o que importa é existir e ser único. */
-function createToken(userId: string): string {
-  return `mock.${userId}.${crypto.randomUUID()}`
-}
-
-/** Remove campos sensíveis do registro antes de devolvê-lo à aplicação. */
-function toPublicUser(record: (typeof USER_RECORDS)[number]): User {
-  const { id, name, email } = record
-  return { id, name, email }
+interface LoginResponse {
+  user: User
+  accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
 }
 
 export async function login(credentials: Credentials): Promise<AuthSession> {
-  await delay()
-
-  const email = credentials.email.trim().toLowerCase()
-  const record = USER_RECORDS.find((user) => user.email.toLowerCase() === email)
-
   /*
-   * Mesma mensagem para "email inexistente" e "senha errada".
-   * Diferenciar os dois casos permitiria a um atacante enumerar contas válidas —
-   * é uma prática que um code review de segurança cobraria mesmo em um mock.
+   * `skipAuthRetry`: um 401 aqui significa credencial errada, não sessão expirada.
+   * Sem isso, o cliente tentaria renovar uma sessão que ainda nem existe.
    */
-  if (!record || record.password !== credentials.password) {
-    throw new ApiError(API_ERROR_CODE.INVALID_CREDENTIALS, 'E-mail ou senha inválidos.')
+  const data = await request<LoginResponse>('/auth/login', {
+    method: 'POST',
+    body: { email: credentials.email.trim(), password: credentials.password },
+    skipAuthRetry: true,
+  })
+
+  const session: AuthSession = {
+    user: data.user,
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
   }
 
-  if (!record.isActive) {
-    throw new ApiError(
-      API_ERROR_CODE.ACCOUNT_DISABLED,
-      'Esta conta está desativada. Entre em contato com o suporte.',
-    )
-  }
+  writeSession(session)
 
-  return { user: toPublicUser(record), token: createToken(record.id) }
-}
-
-export async function logout(): Promise<void> {
-  // Em um backend real, invalidaria o token no servidor.
-  await delay(150)
+  return session
 }
 
 /**
- * Revalida um token de sessão restaurado do armazenamento local.
- * Garante que uma sessão adulterada ou de um usuário removido não seja aceita.
+ * Encerra a sessão no servidor.
+ *
+ * A API revoga a FAMÍLIA inteira de refresh tokens, não apenas o apresentado — sair
+ * significa encerrar a sessão, e o token em mãos é só o elo mais recente da linhagem.
+ *
+ * A limpeza local é responsabilidade do `AuthProvider`, que a faz ANTES desta chamada
+ * (ADR-012): em autenticação, a falha precisa cair para o lado seguro.
  */
-export async function validateSession(session: AuthSession): Promise<User> {
-  const record = USER_RECORDS.find((user) => user.id === session.user.id)
+export async function logout(): Promise<void> {
+  const refreshToken = readSession()?.refreshToken
 
-  if (!record || !record.isActive) {
-    throw new ApiError(API_ERROR_CODE.NOT_FOUND, 'Sessão inválida.')
+  if (!refreshToken) return
+
+  try {
+    await request<null>('/auth/logout', {
+      method: 'POST',
+      body: { refreshToken },
+      skipAuthRetry: true,
+    })
+  } finally {
+    clearSession()
   }
+}
 
-  return respondWith(toPublicUser(record), 100)
+/**
+ * Revalida a sessão restaurada do armazenamento local.
+ *
+ * `GET /auth/me` faz a verificação de verdade: a API confere assinatura, expiração E o
+ * estado atual da conta no banco. Uma sessão adulterada no `localStorage`, de um usuário
+ * removido ou de uma conta desativada é recusada — confiar cegamente no storage
+ * permitiria forjar uma sessão editando o navegador.
+ *
+ * Se o access token estiver vencido, o `http.ts` renova e repete automaticamente. É por
+ * isso que a sessão sobrevive a horas com a aba fechada.
+ */
+export function validateSession(): Promise<User> {
+  return request<User>('/auth/me')
 }

@@ -1,0 +1,112 @@
+# ---------------------------------------------------------------------------
+# Ambiente completo da API: Postgres + aplicacao.
+#
+# Dois modos de uso:
+#   docker compose up -d db     -> so o banco; a API roda na maquina (start:dev)
+#   docker compose up -d --build -> tudo em container, como no CI
+# ---------------------------------------------------------------------------
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: techstore-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-techstore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-techstore}
+      POSTGRES_DB: ${POSTGRES_DB:-techstore}
+      # Encoding EXPLICITO, nao herdado do sistema.
+      #
+      # O initdb usa o locale do host quando nada e dito, e o resultado varia: um cluster
+      # criado no Windows sai em WIN1252, que RECUSA caracteres UTF-8 sem equivalente e
+      # derruba a escrita com "has no equivalent in encoding WIN1252". Foi exatamente o que
+      # aconteceu no ambiente de teste desta sprint. Fixar aqui garante que
+      # desenvolvimento, CI e producao gravem o mesmo conjunto de caracteres.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8'
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      # Volume nomeado: os dados sobrevivem a `docker compose down`. Para zerar o
+      # banco de proposito existe `npm run docker:reset` (down -v).
+      - techstore-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` responde quando o Postgres aceita conexoes — que e diferente
+      # de "o container subiu". A API depende desta condicao para nao tentar
+      # conectar num banco que ainda esta inicializando.
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-techstore} -d ${POSTGRES_DB:-techstore}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Servico de vida curta: aplica migrations e semeia, depois sai.
+  #
+  # Sem ele, `docker compose up` subia a pilha inteira com o banco VAZIO — a API
+  # respondia e o catalogo vinha sem nenhum produto. Migration e seed sao trabalho de
+  # alguem; nao ter esse alguem declarado nao faz o trabalho desaparecer.
+  #
+  # Usa o estagio `migrator`, que preserva as devDependencies (o seed roda via `tsx`).
+  # A imagem de producao continua limpa.
+  #
+  # ATENCAO ao comportamento: este servico roda a CADA `up`, e o seed e um `upsert` que
+  # RESTAURA os campos dos produtos — inclusive o estoque. Na pratica:
+  #
+  #   - pedidos e usuarios criados durante o uso SOBREVIVEM (nao estao no seed)
+  #   - o catalogo VOLTA ao estado de contrato (precos e estoques do seed)
+  #
+  # E deliberado para um ambiente de desenvolvimento e teste, onde um catalogo
+  # deterministico vale mais que a continuidade do estoque. Em producao isto nao existe:
+  # la o passo seria apenas `migrate deploy`, sem seed.
+  migrate:
+    build:
+      context: .
+      target: migrator
+    container_name: techstore-migrate
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-techstore}:${POSTGRES_PASSWORD:-techstore}@db:5432/${POSTGRES_DB:-techstore}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    # Tarefa pontual: nao deve ser reiniciada quando terminar com sucesso.
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      target: runner
+    container_name: techstore-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Dentro da rede do compose o banco atende pelo NOME DO SERVICO, nao por
+      # localhost: cada container tem seu proprio loopback. Esta linha sobrescreve
+      # o DATABASE_URL do .env, que aponta para a maquina do desenvolvedor.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-techstore}:${POSTGRES_PASSWORD:-techstore}@db:5432/${POSTGRES_DB:-techstore}?schema=public
+      NODE_ENV: production
+    ports:
+      - '${PORT:-3000}:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+      # A API so sobe depois de o schema existir. `service_completed_successfully` e o
+      # que transforma "sobe junto e torce" em uma ordem garantida — e, se o migrate
+      # falhar, a API nem inicia, em vez de subir e responder 500 em toda consulta.
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  techstore-pgdata:

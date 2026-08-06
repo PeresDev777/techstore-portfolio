@@ -1,0 +1,9 @@
+# Git hooks vivem na raiz do repositorio — e o unico lugar onde o Git os procura.
+# O trabalho, porem, acontece DENTRO de cada projeto: rodando a partir de `api/`, as
+# ferramentas resolvem a partir de `api/node_modules` e o lint-staged filtra sozinho
+# apenas os arquivos staged que estao sob esse diretorio.
+#
+# E por isso que a raiz nao precisa de eslint nem prettier instalados: ela hospeda o
+# gatilho, nao as ferramentas. Frontend e automation seguem intocados por este hook —
+# quando quiserem, basta repetir o bloco apontando para o diretorio deles.
+cd api && npx lint-staged

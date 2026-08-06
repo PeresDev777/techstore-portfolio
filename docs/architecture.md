@@ -8,15 +8,20 @@ enxuto, formato usado para dar rastreabilidade às escolhas de um time.
 
 ## Visão geral
 
-O repositório contém dois projetos independentes:
+O repositório contém três projetos independentes:
 
 | Projeto       | Papel                                                          |
 | ------------- | -------------------------------------------------------------- |
 | `frontend/`   | Aplicação sob teste (SUT) — loja virtual React + TypeScript     |
 | `automation/` | Framework de testes E2E — Playwright + TypeScript               |
+| `api/`        | Backend REST — NestJS + Prisma + PostgreSQL                     |
 
-Eles se comunicam por **um único contrato**: a URL da aplicação (`BASE_URL`) e os
-atributos `data-testid` expostos pelo frontend. Nenhum import cruzado entre os projetos.
+Eles se comunicam por **contratos explícitos**: a URL da aplicação (`BASE_URL`) e os
+atributos `data-testid` expostos pelo frontend; a URL da API e o formato das respostas
+entre frontend e backend. Nenhum import cruzado entre os projetos.
+
+As decisões do backend estão em **[api-architecture.md](api-architecture.md)** (ADR-020 em
+diante) — este documento cobre frontend e automação.
 
 ---
 

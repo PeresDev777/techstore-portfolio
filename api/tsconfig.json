@@ -1,0 +1,61 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "sourceMap": true,
+    "skipLibCheck": true,
+
+    /*
+     * `incremental` fica DESLIGADO de proposito — e nao por gosto.
+     *
+     * Com ele ligado, o tsc grava um .tsbuildinfo dizendo quais saidas ja existem. O
+     * `nest build` apaga a pasta dist antes de compilar (deleteOutDir), mas o .tsbuildinfo
+     * sobrevive: na compilacao seguinte o tsc conclui que os arquivos nao modificados ja
+     * estao emitidos e pula a escrita deles. Resultado: build "bem-sucedido" com um dist
+     * incompleto, que so quebra em runtime com MODULE_NOT_FOUND — e no container, nunca
+     * na maquina de quem programou.
+     *
+     * O ganho de alguns segundos nao paga um modo de falha que aparece so no deploy.
+     */
+    "incremental": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+
+    /*
+     * Decorators sao o mecanismo central do NestJS: @Module, @Injectable e @Get sao lidos
+     * em runtime. `emitDecoratorMetadata` e o que permite ao container de injecao descobrir
+     * os TIPOS dos parametros do construtor sem que a gente os declare duas vezes.
+     */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    /*
+     * Unica flag do modo estrito desligada. `strictPropertyInitialization` exige que toda
+     * propriedade de classe seja inicializada no construtor — regra correta para objetos de
+     * dominio, mas incompativel com DTOs: `email: string` em um DTO e preenchido pelo
+     * ValidationPipe, nunca por um construtor nosso. Manter a flag obrigaria a poluir todo
+     * DTO com `!` (definite assignment), o que desliga a checagem do mesmo jeito, so que de
+     * forma espalhada e silenciosa.
+     */
+    "strictPropertyInitialization": false
+  },
+  /*
+   * `prisma/` entra aqui para que o seed seja checado por tipos e por lint como qualquer
+   * codigo de producao — ele escreve no banco, e um erro nele quebra o ambiente de todo
+   * mundo. Fica FORA do build (tsconfig.build.json): o seed roda via tsx, nunca sai em
+   * `dist/`, e incluir a pasta no build mudaria a raiz comum e deslocaria a saida para
+   * `dist/src/main.js`.
+   */
+  "include": ["src/**/*", "prisma/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

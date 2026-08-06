@@ -29,3 +29,4 @@ automation/test-results/
 automation/playwright-report/
 automation/blob-report/
 automation/.auth/
+api/openapi.json
