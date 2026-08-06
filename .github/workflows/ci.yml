@@ -69,10 +69,164 @@ jobs:
         working-directory: frontend
         run: npm run test:unit
 
-  e2e:
-    name: Testes E2E (Playwright)
+  # A API tem job proprio porque precisa de um servico que os outros nao usam: um Postgres
+  # de verdade. Rodar isso dentro do job `quality` faria toda checagem de lint do frontend
+  # esperar um banco subir.
+  api:
+    name: API (lint, tipos, migrations e seed)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: techstore
+          POSTGRES_PASSWORD: techstore
+          POSTGRES_DB: techstore
+        ports:
+          - 5432:5432
+        # Sem o healthcheck, os passos comecam assim que o CONTAINER sobe — e o Postgres
+        # ainda leva alguns segundos ate aceitar conexao. E a origem classica do
+        # "falhou uma vez, passou no retry".
+        options: >-
+          --health-cmd "pg_isready -U techstore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://techstore:techstore@localhost:5432/techstore?schema=public
+      NODE_ENV: test
+      PORT: '3000'
+      API_PREFIX: api
+      CORS_ORIGINS: http://localhost:5173,http://localhost:4173
+      LOG_LEVEL: warn
+      # 10 e nao 12: cada login custa um hash, e a suite de API faz dezenas deles.
+      # O custo alto protege senha real em producao, nao massa de teste descartavel.
+      BCRYPT_ROUNDS: '10'
+      JWT_ACCESS_SECRET: ci-secret-com-mais-de-32-caracteres-para-validacao
+      JWT_ACCESS_TTL_SECONDS: '900'
+      REFRESH_TOKEN_TTL_DAYS: '7'
+      THROTTLE_TTL: '60000'
+      # Limite alto: um rate limit apertado reprovaria a suite inteira, que dispara
+      # requisicoes em paralelo de um unico endereco.
+      THROTTLE_LIMIT: '10000'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: api
+        run: npm ci
+
+      - name: Lint
+        working-directory: api
+        run: npm run lint
+
+      - name: Formatacao
+        working-directory: api
+        run: npm run format:check
+
+      - name: Checagem de tipos
+        working-directory: api
+        run: npm run typecheck
+
+      - name: Build
+        working-directory: api
+        run: npm run build
+
+      # `migrate deploy` e nao `migrate dev`: aplica o que esta versionado e nunca gera
+      # migration nova. Se o schema divergir das migrations, este passo FALHA — que e
+      # exatamente o que se quer descobrir no CI, e nao em producao.
+      - name: Aplicar migrations
+        working-directory: api
+        run: npm run prisma:deploy
+
+      - name: Executar seed
+        working-directory: api
+        run: npm run db:seed
+
+      # Prova que a aplicacao sobe de verdade contra o banco. Um build que compila mas nao
+      # inicia (injecao de dependencia quebrada, variavel faltando) passaria em todos os
+      # passos anteriores.
+      - name: Subir a API e verificar readiness
+        working-directory: api
+        run: |
+          node dist/main.js & echo $! > /tmp/api.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health/ready > /dev/null; then
+              echo "API pronta:"
+              curl -s http://localhost:3000/api/health/ready
+              echo
+              # A especificacao so existe com a aplicacao no ar — ela e gerada em runtime
+              # a partir dos DTOs. Capturada aqui, vira artefato versionavel: da para
+              # comparar a spec de um PR com a da main e ver a mudanca de contrato.
+              curl -s http://localhost:3000/api/docs-json -o openapi.json
+              kill "$(cat /tmp/api.pid)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "A API nao ficou pronta em 30s"
+          kill "$(cat /tmp/api.pid)" || true
+          exit 1
+
+      - name: Publicar especificacao OpenAPI
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: api/openapi.json
+          retention-days: 14
+
+  e2e:
+    name: Testes E2E (Playwright + API real)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    # A suite deixou de rodar contra dados mockados: o frontend consome a API, que consome
+    # o Postgres. O job precisa subir a pilha inteira — e e justamente isso que torna o
+    # teste E2E um teste de INTEGRACAO de verdade, e nao da UI isolada.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: techstore
+          POSTGRES_PASSWORD: techstore
+          POSTGRES_DB: techstore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U techstore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://techstore:techstore@localhost:5432/techstore?schema=public
+      # `test` e nao `production`: e o que mantem `POST /test/reset` registrado. Em
+      # producao o modulo nao existe, e a suite nao teria como isolar os cenarios.
+      NODE_ENV: test
+      PORT: '3000'
+      API_PREFIX: api
+      CORS_ORIGINS: http://localhost:5173,http://localhost:4173
+      LOG_LEVEL: warn
+      BCRYPT_ROUNDS: '10'
+      JWT_ACCESS_SECRET: ci-secret-com-mais-de-32-caracteres-para-validacao
+      JWT_ACCESS_TTL_SECONDS: '900'
+      REFRESH_TOKEN_TTL_DAYS: '7'
+      THROTTLE_TTL: '60000'
+      # Alto de proposito: a suite dispara dezenas de requisicoes de um unico endereco.
+      # Um limite de producao reprovaria os testes por excesso de zelo.
+      THROTTLE_LIMIT: '10000'
+      VITE_API_URL: http://localhost:3000/api/v1
 
     steps:
       - uses: actions/checkout@v4
@@ -91,6 +245,10 @@ jobs:
 
       - name: Instalar dependencias da automacao
         working-directory: automation
+        run: npm ci
+
+      - name: Instalar dependencias da API
+        working-directory: api
         run: npm ci
 
       # Os binarios do browser (~150 MB) sao cacheados pela versao do Playwright
@@ -121,6 +279,27 @@ jobs:
       # O `webServer` do Playwright roda `npm run preview` quando CI=true.
       # O build precisa existir antes: construir aqui deixa a falha de build separada
       # da falha de teste, em vez de mascarada dentro do log do webServer.
+      - name: Preparar o banco
+        working-directory: api
+        run: |
+          npm run prisma:deploy
+          npm run db:seed
+
+      - name: Subir a API
+        working-directory: api
+        run: |
+          npm run build
+          node dist/main.js & echo $! > /tmp/api.pid
+          # Espera a PRONTIDAO real (banco conectado), nao apenas a porta abrir. Sem isso,
+          # o primeiro teste bate numa API que ainda esta inicializando.
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/api/health/ready > /dev/null && exit 0
+            sleep 1
+          done
+          echo "API nao ficou pronta"; exit 1
+
+      # O build embute VITE_API_URL: precisa acontecer DEPOIS de a variavel existir e
+      # ANTES do preview que a suite consome.
       - name: Build da aplicacao
         working-directory: frontend
         run: npm run build
@@ -128,6 +307,10 @@ jobs:
       - name: Executar a suite
         working-directory: automation
         run: npm test
+
+      - name: Log da API em caso de falha
+        if: failure()
+        run: tail -100 /tmp/api.log || true
 
       # `always()`: o relatorio e MAIS util quando a suite falha. Sem isso, o artifact
       # so existiria nas execucoes verdes, que sao justamente as que nao precisam dele.

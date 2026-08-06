@@ -1,0 +1,12 @@
+{
+  "name": "techstore-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Raiz do monorepo. Existe apenas para hospedar os git hooks — os tres projetos (frontend, automation, api) continuam autocontidos, cada um com suas proprias dependencias.",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
