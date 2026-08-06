@@ -62,14 +62,37 @@ automation/
 │   ├── api/          cenários por HTTP
 │   └── contract/     resposta real x especificação OpenAPI
 ├── pages/            Page Objects (POM) + components/
-├── services/         camada de consumo da API
+├── services/         ApiClient + um service por recurso
 ├── factories/        geradores de dados únicos (Faker + CPF válido)
 ├── schemas/          carregador da spec e baseline versionada
-├── fixtures/         preparação de estado e injeção de dependência
+├── fixtures/         test.ts (navegador) · api.ts (HTTP)
 ├── data/             massa de CONTRATO, espelho do seed da API
-├── utils/            funções puras (dinheiro, rotas, ambiente)
+├── utils/            compartilhado: dinheiro, rotas, ambiente, asserções
 └── playwright.config.ts
 ```
+
+### A camada de API
+
+```
+ApiClient      transporte: monta a URL, injeta o token, gera o x-request-id
+               e registra cada chamada para virar evidência na falha
+XxxService     conhece a ROTA e nada mais — devolve a resposta CRUA
+utils/assertions   expectSuccess · expectError · expectPaginated · expectFieldErrors
+```
+
+**Services não asseveram, e isso não é purismo.** Metade do trabalho de uma suíte de API é
+verificar 401, 403, 404, 409 e 422. Um service que só soubesse devolver o caminho feliz — ou
+que lançasse exceção no erro — obrigaria cada teste negativo a contorná-lo, e a camada
+deixaria de servir justamente aos testes que mais precisam dela.
+
+A exceção é `AuthService.authenticate()`, que **estoura** se falhar: ele existe para
+_preparar_ estado, e uma fixture que não consegue um token não tem teste para rodar. A
+separação é explícita no nome — `login()` devolve para ser asseverado, `authenticate()`
+devolve para ser usado.
+
+O token é **imutável**: `withToken()` devolve um cliente novo. Um cliente mutável produziria
+o pior tipo de teste de autorização — aquele em que a ordem das chamadas decide quem está
+autenticado, e trocar duas linhas muda o resultado sem que o código pareça diferente.
 
 **Pasta é COMO o teste roda; tag é QUANDO ele roda.** `e2e`, `api` e `contract` são pastas
 porque têm runtime diferente — uma precisa de navegador e `storageState`, outra só de
@@ -116,11 +139,11 @@ do Playwright.
 
 ## Tags
 
-| Tag         | Significado                                   | PR  | Main | Diário |
-| ----------- | --------------------------------------------- | --- | ---- | ------ |
-| `@smoke`    | O sistema está de pé. 8 cenários, rápido      | ✅  | ✅   | ✅     |
-| `@critical` | Caminho de receita: login → carrinho → pedido | ✅  | ✅   | ✅     |
-| `@slow`     | Concorrência, expiração de token              | —   | —    | ✅     |
+| Tag         | Significado                                       | PR  | Main | Diário |
+| ----------- | ------------------------------------------------- | --- | ---- | ------ |
+| `@smoke`    | O sistema está de pé. 14 cenários (8 E2E + 6 API) | ✅  | ✅   | ✅     |
+| `@critical` | Caminho de receita: login → carrinho → pedido     | ✅  | ✅   | ✅     |
+| `@slow`     | Concorrência, expiração de token                  | —   | —    | ✅     |
 
 ```bash
 npm run test:smoke        # --grep @smoke
