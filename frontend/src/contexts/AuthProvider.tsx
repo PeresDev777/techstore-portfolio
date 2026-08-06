@@ -81,18 +81,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const logout = useCallback(async () => {
     /*
-     * A ordem importa e nao mudou com a API real — ao contrario, ficou mais relevante.
-     * O `authService.logout` precisa do refresh token para revogar a familia no servidor,
-     * entao a leitura acontece dentro dele ANTES de limparmos; e a limpeza local vem
-     * primeiro para que qualquer interrupcao deixe o usuario deslogado, nao logado.
+     * O token e capturado ANTES de limpar porque o servidor precisa dele para revogar a
+     * familia inteira — e depois disso nao ha mais de onde le-lo.
+     *
+     * Esta ordem corrige um defeito que a suite E2E flagrou. `setUser(null)` sozinho muda
+     * apenas o estado do React: e o suficiente para a tela redirecionar para /login, mas o
+     * `localStorage` continuava com uma sessao valida ate a resposta do servidor chegar,
+     * porque a limpeza morava num `finally` DEPOIS do await. Qualquer navegacao nessa
+     * janela — um F5, um link, fechar e reabrir a aba — restaurava a sessao pelo
+     * `GET /auth/me`, com o access token ainda valido por ate 15 minutos.
+     *
+     * O sintoma era o pior possivel: o usuario clicava em "sair", via a tela de login, e
+     * continuava autenticado. Exatamente o modo de falha que o ADR-012 existe para impedir.
      */
+    const refreshToken = readSession()?.refreshToken
+
     setUser(null)
+    clearSession()
+
+    if (!refreshToken) return
 
     try {
-      await authService.logout()
+      await authService.logout(refreshToken)
     } catch {
-      clearSession()
-      // A sessão local já foi encerrada; falha na invalidação remota não reverte isso.
+      // Best-effort: a sessao local ja acabou. Falhar aqui nao a devolve.
     }
   }, [])
 

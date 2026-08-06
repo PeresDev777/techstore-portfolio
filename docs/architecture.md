@@ -214,6 +214,45 @@ e descarte de dados corrompidos vindos do `localStorage`.
 responsabilidade única do `PrivateRoute`. Antes havia duas navegações concorrentes para
 `/login` e a vencedora era imprevisível — origem do item 2.
 
+**Correção posterior — o item 3 estava escrito, não implementado.**
+
+A auditoria da suíte de automação encontrou um cenário E2E que falhava de forma
+intermitente (4 de 4 execuções isoladas, mas verde dentro da suíte completa). A causa não
+era o teste:
+
+`logout()` chamava `setUser(null)` e só depois `await authService.logout()` — e o
+`clearSession()` real morava num `finally` DENTRO dessa chamada, ou seja, **depois** da ida
+e volta de rede. `setUser(null)` muda apenas o estado do React: bastava para a tela
+redirecionar para `/login`, mas o `localStorage` seguia com uma sessão válida durante toda
+a requisição.
+
+Medido com o storage instrumentado:
+
+| Momento | `localStorage` |
+| --- | --- |
+| Antes do logout | `techstore:session` presente |
+| Logo após redirecionar para `/login` | **ainda presente, com a sessão inteira** |
+| ~3 s depois | vazio |
+
+Qualquer navegação nessa janela — F5, um link, fechar e reabrir a aba — restaurava a sessão
+por `GET /auth/me`, com o access token válido por até 15 minutos. O usuário clicava em
+"sair", via a tela de login e continuava autenticado: exatamente o modo de falha que este
+ADR foi escrito para impedir.
+
+A correção move a captura do refresh token para antes da limpeza e torna
+`authService.logout(refreshToken)` uma função sem opinião sobre armazenamento — ela só
+revoga no servidor. A rota é pública (a identidade é o próprio refresh token no corpo), por
+isso funciona com a sessão local já apagada.
+
+Duas lições que valem além deste caso:
+
+1. **Comentário não é garantia.** Os dois arquivos afirmavam a invariante por escrito, e
+   nenhum dos dois a implementava. O comentário envelheceu junto com o código, sem alarme.
+2. **Falha intermitente com causa determinística.** A janela dependia da latência da rede,
+   então o cenário passava na suíte completa e falhava isolado — o padrão que faz um time
+   marcar o teste como *flaky* e perder o defeito. Antes de quarentenar, reproduza no
+   código original: aqui foi isso que separou "teste instável" de "bug real".
+
 ---
 
 ## ADR-013 — Dado e formatação são coisas separadas

@@ -1,4 +1,4 @@
-import { clearSession, readSession, request, writeSession } from '@/services/http'
+import { request, writeSession } from '@/services/http'
 import type { AuthSession, Credentials, User } from '@/types/user'
 
 /**
@@ -39,28 +39,30 @@ export async function login(credentials: Credentials): Promise<AuthSession> {
 }
 
 /**
- * Encerra a sessão no servidor.
+ * Encerra a sessão NO SERVIDOR. Não toca no armazenamento local.
  *
  * A API revoga a FAMÍLIA inteira de refresh tokens, não apenas o apresentado — sair
  * significa encerrar a sessão, e o token em mãos é só o elo mais recente da linhagem.
  *
- * A limpeza local é responsabilidade do `AuthProvider`, que a faz ANTES desta chamada
- * (ADR-012): em autenticação, a falha precisa cair para o lado seguro.
+ * **O token chega por parâmetro, e isso é a correção de um defeito real.** Antes esta
+ * função lia o refresh token do storage e o limpava num `finally` — ou seja, a limpeza
+ * local só acontecia DEPOIS da ida e volta de rede, ao contrário do que o ADR-012 promete.
+ * Na janela entre o clique em "sair" e a resposta do servidor, o `localStorage` ainda
+ * guardava uma sessão válida, e qualquer navegação (F5, fechar e reabrir a aba, um link)
+ * a restaurava: o usuário pedia para sair e continuava dentro.
+ *
+ * Recebendo o token pronto, esta função deixa de ter opinião sobre armazenamento — quem
+ * encerra a sessão local é o `AuthProvider`, antes de chamar aqui.
+ *
+ * A rota é pública: a prova de identidade é o próprio refresh token no corpo, não o
+ * access token no header. Por isso ela funciona mesmo com a sessão local já apagada.
  */
-export async function logout(): Promise<void> {
-  const refreshToken = readSession()?.refreshToken
-
-  if (!refreshToken) return
-
-  try {
-    await request<null>('/auth/logout', {
-      method: 'POST',
-      body: { refreshToken },
-      skipAuthRetry: true,
-    })
-  } finally {
-    clearSession()
-  }
+export async function logout(refreshToken: string): Promise<void> {
+  await request<null>('/auth/logout', {
+    method: 'POST',
+    body: { refreshToken },
+    skipAuthRetry: true,
+  })
 }
 
 /**

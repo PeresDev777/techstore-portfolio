@@ -31,6 +31,13 @@ campo à resposta não quebra ninguém; remover um sim.
 
 ### Corrigido
 
+- **O logout não encerrava a sessão local antes da chamada remota**, apesar de o ADR-012
+  afirmar que sim. `setUser(null)` mudava só o estado do React; o `clearSession()` real
+  rodava num `finally` depois do `await`. Na janela entre o clique em "sair" e a resposta
+  do servidor, o `localStorage` guardava uma sessão válida — e qualquer navegação (F5,
+  link, reabrir a aba) a restaurava com o access token ainda bom por até 15 minutos.
+  Encontrado por um cenário E2E que falhava de forma intermitente. Agora
+  `authService.logout(refreshToken)` recebe o token pronto e não toca no armazenamento.
 - **A especificação OpenAPI descrevia o formato errado das respostas.** As anotações
   declaravam o tipo do dado (`type: OrderEntity`), mas o `ResponseInterceptor` envolve tudo
   em `{ success, message, data }`. Quem gerasse um cliente a partir de `/api/docs-json`
