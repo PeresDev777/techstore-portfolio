@@ -2,12 +2,13 @@
 
 [![CI](https://github.com/PeresDev777/techstore-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/PeresDev777/techstore-portfolio/actions/workflows/ci.yml)
 
-Projeto de portfólio que reúne, no mesmo repositório, **uma aplicação real** e **a suíte de
-testes automatizados que a valida** — demonstrando as duas metades do trabalho de um QA
-Automation Engineer: entender/construir software e garantir sua qualidade.
+Projeto de portfólio que reúne, no mesmo repositório, **uma aplicação full-stack real** e
+**a suíte de testes automatizados que a valida** — demonstrando as duas metades do trabalho
+de um QA Automation Engineer: entender/construir software e garantir sua qualidade.
 
-**28 testes unitários** (~180 ms, sem navegador) · **79 cenários E2E** em Playwright ·
-**19 decisões arquiteturais documentadas** · CI em dois jobs paralelos.
+**28 testes unitários** (~190 ms, sem navegador) · **79 cenários E2E** em Playwright
+rodando contra a **API real e um Postgres real** · **44 decisões arquiteturais
+documentadas** · CI em três jobs.
 
 ---
 
@@ -25,6 +26,13 @@ Automation Engineer: entender/construir software e garantir sua qualidade.
 
 ```
 techstore-portfolio/
+├── api/                   # Backend REST — NestJS + Prisma + PostgreSQL
+│   └── src/
+│       ├── modules/       # Um diretório por domínio (auth, products, cart, orders...)
+│       ├── common/        # Envelope, erros, guards, decorators
+│       ├── config/        # Ambiente validado no boot
+│       └── database/      # Seed compartilhado com o endpoint de reset
+│
 ├── frontend/              # Aplicação sob teste (SUT)
 │   └── src/
 │       ├── components/    # Componentes reutilizáveis (ui/ e layout/)
@@ -48,11 +56,21 @@ techstore-portfolio/
 └── .github/workflows/     # Pipeline de CI
 ```
 
-As decisões de arquitetura estão documentadas em **[docs/architecture.md](docs/architecture.md)**.
+| Documento | Conteúdo |
+| --- | --- |
+| [docs/architecture.md](docs/architecture.md) | Frontend e automação (ADR-001 a ADR-019) |
+| [docs/api-architecture.md](docs/api-architecture.md) | API (ADR-020 a ADR-046) |
+| [docs/database.md](docs/database.md) | Modelo, relações, índices e seed |
+| [docs/authentication-flow.md](docs/authentication-flow.md) | Fluxo de sessão com diagramas |
+| [docs/conventions.md](docs/conventions.md) | Convenções de código, commits e API |
+| [docs/roadmap.md](docs/roadmap.md) | O que vem depois |
 
 ---
 
 ## Tecnologias
+
+**API** — NestJS 11 · TypeScript · Prisma · PostgreSQL 16 · Passport/JWT · bcrypt ·
+class-validator · Swagger · Pino · Docker
 
 **Frontend** — React 19 · TypeScript · Vite · React Router · Context API · Tailwind CSS ·
 ESLint · Prettier

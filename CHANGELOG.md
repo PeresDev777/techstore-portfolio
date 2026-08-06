@@ -1,0 +1,98 @@
+# Changelog
+
+Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
+versionamento segundo [Semantic Versioning](https://semver.org/lang/pt-BR/).
+
+Para uma API, `MAJOR.MINOR.PATCH` tem um significado concreto e verificável:
+
+- **MAJOR** — quebra de contrato. Rota removida, campo de resposta removido ou renomeado,
+  validação mais restritiva, status HTTP diferente para o mesmo caso.
+- **MINOR** — capacidade nova, compatível com quem já consome. Rota nova, campo novo na
+  resposta, parâmetro opcional novo.
+- **PATCH** — correção sem mudança de contrato.
+
+A regra prática: **se um cliente escrito ontem parar de funcionar, é MAJOR.** Adicionar um
+campo à resposta não quebra ninguém; remover um sim.
+
+---
+
+## [Não publicado]
+
+### Adicionado — integração frontend ↔ API
+
+- O frontend consome a API real. `services/http.ts` deixou de simular rede e virou cliente
+  `fetch` com desembrulho de envelope, tradução de códigos de erro e **renovação
+  automática de token** (com renovação em voo compartilhada, para não disparar o detector
+  de reuso da própria API).
+- Carrinho no servidor com **cache otimista**: o redutor puro segue respondendo na hora, a
+  API decide de verdade, e o estado converge para a resposta.
+- Suíte E2E passou a rodar contra a pilha completa no CI: Postgres + API + frontend.
+  Fixture automática chama `POST /test/reset` antes de cada teste.
+
+### Corrigido
+
+- **A especificação OpenAPI descrevia o formato errado das respostas.** As anotações
+  declaravam o tipo do dado (`type: OrderEntity`), mas o `ResponseInterceptor` envolve tudo
+  em `{ success, message, data }`. Quem gerasse um cliente a partir de `/api/docs-json`
+  receberia a forma sem o envelope. Corrigido com decorators próprios
+  (`@ApiSuccessResponse`, `@ApiPaginatedResponse`, `@ApiErrorResponse`) aplicados às 64
+  respostas — incluindo as de health, cujo schema vinha do Terminus e também estava errado.
+- Erros passam a documentar `code` e `errors[]` no schema, não apenas uma descrição em
+  texto.
+
+### Adicionado
+
+- Documentação técnica: [`docs/authentication-flow.md`](docs/authentication-flow.md),
+  [`docs/conventions.md`](docs/conventions.md) e [`docs/roadmap.md`](docs/roadmap.md).
+- `POST /api/v1/test/reset` — apaga todos os dados e reaplica o seed. Disponível apenas
+  fora de produção; o módulo não é registrado quando `NODE_ENV=production`.
+
+### Alterado
+
+- Seed extraído para `src/database/seed.runner.ts`, compartilhado entre o script de linha
+  de comando e o endpoint de reset.
+- Exceções de domínio centralizadas em `common/exceptions/domain.exceptions.ts` — 32
+  chamadas convertidas. `code` e `errors` passam a ser garantidos por construção.
+- `PATCH /api/v1/products/:id` aceita `isActive`, permitindo recolocar em catálogo um
+  produto retirado. Antes, `DELETE` era irreversível pela API.
+
+---
+
+## [0.1.0] — 2026-08-06
+
+Primeira versão funcional da API. Não publicada: a numeração começa em `0.x` justamente
+porque o contrato ainda pode mudar sem aviso — é o que `0.` comunica em SemVer.
+
+### Adicionado
+
+**Plataforma**
+
+- NestJS 11 + TypeScript, arquitetura modular com controller / service / repository.
+- PostgreSQL 16 com Prisma; migrations versionadas e seed determinístico.
+- Envelope único em toda resposta: `{ success, message, data }` e, em listas, `pagination`.
+- Tratamento global de erros com `code` estável; 5xx nunca vaza detalhe interno.
+- Validação por DTO com `whitelist` (bloqueia mass assignment) e status 422.
+- Log estruturado (Pino) com correlação por `x-request-id`.
+- Helmet, CORS por lista, rate limiting configurável.
+- Swagger em `/api/docs` e OpenAPI JSON em `/api/docs-json`.
+- Liveness e readiness separados, fora do versionamento.
+- Docker multi-estágio e Docker Compose com Postgres.
+
+**Autenticação**
+
+- Cadastro, login, renovação e logout com revogação real de sessão.
+- Access token JWT de 15 min + refresh token opaco de 7 dias, guardado como hash SHA-256,
+  rotacionado a cada uso, com detecção de reuso que revoga a família inteira.
+- `JwtAuthGuard` global (fechado por padrão) e `RolesGuard` por papel.
+- Mesma mensagem para e-mail inexistente e senha errada, com tempo de resposta equalizado.
+
+**Domínio**
+
+- Usuários: perfil, atualização, troca de senha e exclusão lógica com revogação de sessões.
+- Categorias e produtos: CRUD administrativo, busca sem acento, filtros, cinco ordenações
+  e paginação.
+- Carrinho no servidor: soma de item repetido, limite de estoque sobre a soma, frete
+  grátis acima de R$ 500,00, itens indisponíveis sinalizados fora dos totais.
+- Pedidos: fechamento transacional com baixa de estoque sob guarda condicional, snapshot
+  de comprador, endereço e preços, histórico paginado, cancelamento com devolução de
+  estoque e confirmação de pagamento simulada.
