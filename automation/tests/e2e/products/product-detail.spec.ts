@@ -2,12 +2,16 @@ import { PRODUCTS } from '@data/products'
 import { expect, test } from '@fixtures/test'
 
 test.describe('Página do produto', () => {
-  test('exibe nome, preço, categoria, descrição e avaliação', async ({ productDetailPage }) => {
-    await productDetailPage.openProduct(PRODUCTS.headphone.id)
+  test(
+    'exibe nome, preço, categoria, descrição e avaliação',
+    { tag: '@smoke' },
+    async ({ productDetailPage }) => {
+      await productDetailPage.openProduct(PRODUCTS.headphone.id)
 
-    await productDetailPage.expectProductDetails(PRODUCTS.headphone)
-    await expect(productDetailPage.description).toContainText('cancelamento ativo')
-  })
+      await productDetailPage.expectProductDetails(PRODUCTS.headphone)
+      await expect(productDetailPage.description).toContainText('cancelamento ativo')
+    },
+  )
 
   test('a imagem do produto realmente carrega', async ({ productDetailPage }) => {
     await productDetailPage.openProduct(PRODUCTS.headphone.id)

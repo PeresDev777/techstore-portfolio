@@ -13,15 +13,17 @@ test.describe('Carrinho', () => {
     await expect(page).toHaveURL(/\/products$/)
   })
 
-  test('adicionar pela página do produto com quantidade escolhida', async ({
-    productDetailPage,
-  }) => {
-    await productDetailPage.openProduct(PRODUCTS.mouse.id)
+  test(
+    'adicionar pela página do produto com quantidade escolhida',
+    { tag: '@smoke' },
+    async ({ productDetailPage }) => {
+      await productDetailPage.openProduct(PRODUCTS.mouse.id)
 
-    await productDetailPage.addToCartWithQuantity(3)
+      await productDetailPage.addToCartWithQuantity(3)
 
-    await productDetailPage.header.expectCartCount(3)
-  })
+      await productDetailPage.header.expectCartCount(3)
+    },
+  )
 
   test('o badge só aparece quando há itens', async ({ productDetailPage }) => {
     await productDetailPage.openProduct(PRODUCTS.mouse.id)
@@ -32,15 +34,19 @@ test.describe('Carrinho', () => {
     await productDetailPage.header.expectCartCount(1)
   })
 
-  test('total do carrinho é subtotal mais frete', async ({ productDetailPage, cartPage }) => {
-    await productDetailPage.openProduct(PRODUCTS.mouse.id)
-    await productDetailPage.addToCart()
-    await cartPage.open()
+  test(
+    'total do carrinho é subtotal mais frete',
+    { tag: ['@smoke', '@critical'] },
+    async ({ productDetailPage, cartPage }) => {
+      await productDetailPage.openProduct(PRODUCTS.mouse.id)
+      await productDetailPage.addToCart()
+      await cartPage.open()
 
-    expect(await cartPage.subtotalInCents()).toBe(PRODUCTS.mouse.price)
-    expect(await cartPage.shippingInCents()).toBe(SHIPPING.cost)
-    await cartPage.expectTotalsAreConsistent()
-  })
+      expect(await cartPage.subtotalInCents()).toBe(PRODUCTS.mouse.price)
+      expect(await cartPage.shippingInCents()).toBe(SHIPPING.cost)
+      await cartPage.expectTotalsAreConsistent()
+    },
+  )
 
   test('frete fica gratuito acima do limite', async ({ productDetailPage, cartPage }) => {
     await productDetailPage.openProduct(PRODUCTS.mouse.id)
@@ -82,16 +88,22 @@ test.describe('Carrinho', () => {
     ).toBeDisabled()
   })
 
-  test('a quantidade não passa do estoque disponível', async ({ productDetailPage, cartPage }) => {
-    await productDetailPage.openProduct(PRODUCTS.premiumLaptop.id)
-    await productDetailPage.addToCartWithQuantity(PRODUCTS.premiumLaptop.stock)
+  test(
+    'a quantidade não passa do estoque disponível',
+    { tag: '@critical' },
+    async ({ productDetailPage, cartPage }) => {
+      await productDetailPage.openProduct(PRODUCTS.premiumLaptop.id)
+      await productDetailPage.addToCartWithQuantity(PRODUCTS.premiumLaptop.stock)
 
-    // Já no estoque máximo, o botão de adicionar fica indisponível.
-    await productDetailPage.expectAddButtonDisabled()
+      // Já no estoque máximo, o botão de adicionar fica indisponível.
+      await productDetailPage.expectAddButtonDisabled()
 
-    await cartPage.open()
-    expect(await cartPage.quantityOf(PRODUCTS.premiumLaptop.id)).toBe(PRODUCTS.premiumLaptop.stock)
-  })
+      await cartPage.open()
+      expect(await cartPage.quantityOf(PRODUCTS.premiumLaptop.id)).toBe(
+        PRODUCTS.premiumLaptop.stock,
+      )
+    },
+  )
 
   test('remover um item devolve o carrinho ao estado vazio', async ({
     productDetailPage,

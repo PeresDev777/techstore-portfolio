@@ -8,7 +8,7 @@ test.describe('Pesquisa de produtos', () => {
     await productsPage.waitForResults()
   })
 
-  test('encontra um produto existente', async ({ productsPage }) => {
+  test('encontra um produto existente', { tag: '@smoke' }, async ({ productsPage }) => {
     await productsPage.search(SEARCH_TERMS.single.term)
 
     await productsPage.expectResultCount(SEARCH_TERMS.single.expectedCount)

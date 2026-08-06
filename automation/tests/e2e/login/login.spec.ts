@@ -13,13 +13,17 @@ test.describe('Login', () => {
     await loginPage.open()
   })
 
-  test('login com credenciais válidas leva ao dashboard', async ({ loginPage, dashboardPage }) => {
-    await loginPage.loginAs(USERS.valid)
+  test(
+    'login com credenciais válidas leva ao dashboard',
+    { tag: ['@smoke', '@critical'] },
+    async ({ loginPage, dashboardPage }) => {
+      await loginPage.loginAs(USERS.valid)
 
-    await dashboardPage.expectToBeCurrentPage()
-    await dashboardPage.expectGreeting(USERS.valid.name)
-    await dashboardPage.header.expectLoggedInAs(USERS.valid.name)
-  })
+      await dashboardPage.expectToBeCurrentPage()
+      await dashboardPage.expectGreeting(USERS.valid.name)
+      await dashboardPage.header.expectLoggedInAs(USERS.valid.name)
+    },
+  )
 
   test('e-mail inexistente é recusado', async ({ loginPage, page }) => {
     await loginPage.submitCredentials(USERS.unknown.email, USERS.unknown.password)
@@ -78,18 +82,22 @@ test.describe('Login', () => {
     await loginPage.expectNoFieldError('email')
   })
 
-  test('logout encerra a sessão e protege as rotas', async ({ loginPage, dashboardPage, page }) => {
-    await loginPage.loginAs(USERS.valid)
-    await dashboardPage.expectToBeCurrentPage()
+  test(
+    'logout encerra a sessão e protege as rotas',
+    { tag: '@critical' },
+    async ({ loginPage, dashboardPage, page }) => {
+      await loginPage.loginAs(USERS.valid)
+      await dashboardPage.expectToBeCurrentPage()
 
-    await dashboardPage.header.logout()
+      await dashboardPage.header.logout()
 
-    await expect(page).toHaveURL(new RegExp(ROUTES.login))
+      await expect(page).toHaveURL(new RegExp(ROUTES.login))
 
-    // Voltar à rota protegida depois de sair não pode devolver acesso.
-    await page.goto(ROUTES.dashboard)
-    await expect(page).toHaveURL(new RegExp(ROUTES.login))
-  })
+      // Voltar à rota protegida depois de sair não pode devolver acesso.
+      await page.goto(ROUTES.dashboard)
+      await expect(page).toHaveURL(new RegExp(ROUTES.login))
+    },
+  )
 
   test('sessão sobrevive ao recarregar a página', async ({ loginPage, dashboardPage, page }) => {
     await loginPage.loginAs(USERS.valid)

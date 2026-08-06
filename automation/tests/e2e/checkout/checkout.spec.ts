@@ -22,51 +22,58 @@ test.describe('Checkout — finalização', () => {
     expect(await checkoutPage.summaryShippingInCents()).toBe(0)
   })
 
-  test('pedido concluído exibe confirmação com os dados informados', async ({
-    checkoutPage,
-    orderSuccessPage,
-  }) => {
-    await checkoutPage.open()
-    await checkoutPage.placeOrder(CUSTOMER)
+  test(
+    'pedido concluído exibe confirmação com os dados informados',
+    {
+      tag: ['@smoke', '@critical'],
+    },
+    async ({ checkoutPage, orderSuccessPage }) => {
+      await checkoutPage.open()
+      await checkoutPage.placeOrder(CUSTOMER)
 
-    await orderSuccessPage.waitUntilReady()
-    await orderSuccessPage.expectOrderNumberFormat()
-    await orderSuccessPage.expectOrderMatches(CUSTOMER, {
-      cpf: EXPECTED_MASKS.cpf,
-      phone: EXPECTED_MASKS.mobilePhone,
-      zipCode: EXPECTED_MASKS.zipCode,
-    })
+      await orderSuccessPage.waitUntilReady()
+      await orderSuccessPage.expectOrderNumberFormat()
+      await orderSuccessPage.expectOrderMatches(CUSTOMER, {
+        cpf: EXPECTED_MASKS.cpf,
+        phone: EXPECTED_MASKS.mobilePhone,
+        zipCode: EXPECTED_MASKS.zipCode,
+      })
 
-    // Evidência do marco no relatório, mesmo com o teste verde.
-    await orderSuccessPage.attachScreenshot('pedido-confirmado')
-  })
+      // Evidência do marco no relatório, mesmo com o teste verde.
+      await orderSuccessPage.attachScreenshot('pedido-confirmado')
+    },
+  )
 
-  test('o total do pedido é o mesmo do carrinho', async ({
-    cartPage,
-    checkoutPage,
-    orderSuccessPage,
-  }) => {
-    await cartPage.open()
-    const cartTotal = await cartPage.totalInCents()
+  test(
+    'o total do pedido é o mesmo do carrinho',
+    { tag: '@critical' },
+    async ({ cartPage, checkoutPage, orderSuccessPage }) => {
+      await cartPage.open()
+      const cartTotal = await cartPage.totalInCents()
 
-    await cartPage.goToCheckout()
-    await checkoutPage.waitUntilReady()
-    expect(await checkoutPage.summaryTotalInCents()).toBe(cartTotal)
+      await cartPage.goToCheckout()
+      await checkoutPage.waitUntilReady()
+      expect(await checkoutPage.summaryTotalInCents()).toBe(cartTotal)
 
-    await checkoutPage.placeOrder(CUSTOMER)
+      await checkoutPage.placeOrder(CUSTOMER)
 
-    await orderSuccessPage.waitUntilReady()
-    expect(await orderSuccessPage.totalInCents()).toBe(cartTotal)
-    expect(cartTotal).toBe(PRODUCTS.mouse.price + SHIPPING.cost)
-  })
+      await orderSuccessPage.waitUntilReady()
+      expect(await orderSuccessPage.totalInCents()).toBe(cartTotal)
+      expect(cartTotal).toBe(PRODUCTS.mouse.price + SHIPPING.cost)
+    },
+  )
 
-  test('o carrinho é esvaziado após a compra', async ({ checkoutPage, orderSuccessPage }) => {
-    await checkoutPage.open()
-    await checkoutPage.placeOrder(CUSTOMER)
+  test(
+    'o carrinho é esvaziado após a compra',
+    { tag: '@critical' },
+    async ({ checkoutPage, orderSuccessPage }) => {
+      await checkoutPage.open()
+      await checkoutPage.placeOrder(CUSTOMER)
 
-    await orderSuccessPage.waitUntilReady()
-    await orderSuccessPage.header.expectCartCount(0)
-  })
+      await orderSuccessPage.waitUntilReady()
+      await orderSuccessPage.header.expectCartCount(0)
+    },
+  )
 
   test('cada pedido recebe um número diferente', async ({
     checkoutPage,

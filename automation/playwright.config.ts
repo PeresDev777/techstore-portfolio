@@ -1,14 +1,34 @@
 import { defineConfig, devices } from '@playwright/test'
 
 import { AUTH_STATE_FILE } from './fixtures/paths.ts'
-
-const IS_CI = !!process.env.CI
+import { ENV } from './utils/env.ts'
 
 /**
- * A baseURL vem do ambiente para que a mesma suite rode contra local, preview ou staging
- * sem alterar codigo. Default aponta para o `vite preview` do frontend.
+ * Quais projetos esta execucao vai rodar.
+ *
+ * O `webServer` do Playwright e GLOBAL — nao existe "suba o frontend so para este
+ * projeto". Sem esta leitura, rodar `tests/api/` construiria e serviria uma aplicacao
+ * React que nenhum teste de API abre, somando dezenas de segundos a cada execucao.
+ *
+ * Ler `--project` do argv e a unica forma de decidir isso em tempo de configuracao.
+ * Na duvida (nenhum `--project` informado), sobe o frontend: falhar por excesso de
+ * zelo custa tempo; falhar por falta derruba a suite E2E inteira com um erro de
+ * conexao que nao explica a causa.
  */
-const BASE_URL = process.env.BASE_URL ?? 'http://localhost:4173'
+function selectedProjects(): string[] {
+  const projects: string[] = []
+
+  for (let i = 0; i < process.argv.length; i++) {
+    const arg = process.argv[i]
+    if (arg === '--project' && process.argv[i + 1]) projects.push(process.argv[i + 1]!)
+    else if (arg?.startsWith('--project=')) projects.push(arg.slice('--project='.length))
+  }
+
+  return projects
+}
+
+const SELECTED = selectedProjects()
+const NEEDS_FRONTEND = SELECTED.length === 0 || SELECTED.some((p) => p === 'e2e' || p === 'setup')
 
 export default defineConfig({
   testDir: './tests',
@@ -21,26 +41,21 @@ export default defineConfig({
   expect: { timeout: 5_000 },
 
   /*
-   * Execucao SERIAL, e nao por preferencia: e uma consequencia direta de a aplicacao ter
-   * passado a ter backend.
+   * Execucao SERIAL por padrao, e nao por preferencia: e consequencia direta de a
+   * aplicacao ter passado a ter backend. Carrinho e pedidos vivem no servidor, entao dois
+   * testes em paralelo com o mesmo usuario disputam o mesmo carrinho, e um teste que
+   * compra baixa o estoque para todos os outros.
    *
-   * O carrinho e os pedidos vivem no servidor, entao dois testes em paralelo com o mesmo
-   * usuario disputam o mesmo carrinho, e um teste que compra baixa o estoque para todos
-   * os outros. Rodar em paralelo aqui produziria falhas dependentes de ordem — que
-   * parecem flakiness e custam horas de investigacao.
-   *
-   * O caminho para recuperar paralelismo, quando o tempo da suite justificar, e dar a
-   * cada worker o SEU proprio usuario (`POST /auth/register`) e reservar massa de estoque
-   * por worker. Fica registrado como evolucao; hoje a suite roda em poucos minutos.
+   * O projeto `contract` sobrescreve isso: ele so LE a especificacao, nao toca no estado.
    */
   fullyParallel: false,
   workers: 1,
 
   /* Retry apenas no CI: mascarar flakiness na maquina do dev esconde problema real. */
-  retries: IS_CI ? 2 : 0,
+  retries: ENV.isCI ? 2 : 0,
 
   /* Impede que um `test.only` esquecido passe despercebido e reduza a cobertura no CI. */
-  forbidOnly: IS_CI,
+  forbidOnly: ENV.isCI,
 
   reporter: [
     ['list'],
@@ -49,7 +64,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: BASE_URL,
+    baseURL: ENV.baseUrl,
 
     /* Evidencias: capturadas so quando agregam valor, para nao inflar os artifacts. */
     screenshot: 'only-on-failure',
@@ -65,8 +80,8 @@ export default defineConfig({
 
   projects: [
     /*
-     * Autentica uma vez e grava o estado do navegador em disco.
-     * Os testes dependem deste projeto e partem já logados — ver `fixtures/auth.setup.ts`.
+     * Autentica uma vez pela UI e grava o estado do navegador em disco.
+     * So o projeto `e2e` depende dele — ver `fixtures/auth.setup.ts`.
      */
     {
       name: 'setup',
@@ -74,33 +89,79 @@ export default defineConfig({
       testDir: './fixtures',
       testMatch: /auth\.setup\.ts/,
     },
+
+    /*
+     * NAVEGADOR. Renomeado de `chromium` para `e2e`: o nome do projeto passou a indicar o
+     * TIPO de teste, nao o motor. Quando Firefox e WebKit entrarem, serao `e2e-firefox` e
+     * `e2e-webkit` — o eixo que importa na linha de comando e "qual suite", nao "qual browser".
+     */
     {
-      name: 'chromium',
+      name: 'e2e',
+      testDir: './tests/e2e',
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH_STATE_FILE,
       },
       dependencies: ['setup'],
     },
+
     /*
-     * Firefox/WebKit e mobile ficam comentados ate a suite estar estavel em chromium.
-     * Ativar cedo demais multiplica o custo de manutencao sem ganho de cobertura real.
+     * API. Sem navegador e sem `storageState`.
+     *
+     * Herdar o projeto de navegador aqui subiria um Chromium por cenario para nao usa-lo —
+     * e o `storageState` do E2E nao serve, porque autenticacao em teste de API e explicita:
+     * o teste PRECISA controlar qual token esta apresentando.
+     *
+     * `baseURL` aponta para a raiz das rotas de negocio, entao os services chamam
+     * `/products` em vez de repetir o host em cada arquivo.
      */
-    // { name: 'firefox', use: { ...devices['Desktop Firefox'], storageState: AUTH_STATE_FILE }, dependencies: ['setup'] },
-    // { name: 'mobile-chrome', use: { ...devices['Pixel 7'], storageState: AUTH_STATE_FILE }, dependencies: ['setup'] },
+    {
+      name: 'api',
+      testDir: './tests/api',
+      use: { baseURL: ENV.apiUrl },
+
+      /*
+       * Retry ZERO, inclusive no CI, e esta e a diferenca mais importante entre as duas
+       * suites. No E2E o retry compra estabilidade contra a rede. Num teste de
+       * concorrencia, um teste que falha e passa na segunda tentativa E EXATAMENTE o
+       * defeito que se esta cacando: o retry transformaria a descoberta em verde.
+       */
+      retries: 0,
+    },
+
+    /*
+     * CONTRATO. Compara a resposta real com a especificacao publicada em `/docs-json`.
+     *
+     * Paralelizavel porque nao escreve nada: le a spec e faz requisicoes de leitura. E a
+     * unica das tres suites que nao disputa estado no servidor.
+     */
+    {
+      name: 'contract',
+      testDir: './tests/contract',
+      use: { baseURL: ENV.apiUrl },
+      fullyParallel: true,
+      workers: undefined,
+      retries: 0,
+    },
   ],
 
   /*
-   * Sobe o frontend automaticamente antes da suite.
-   * Localmente reaproveita um servidor ja rodando; no CI sempre sobe do zero a partir do build.
+   * Sobe o frontend antes da suite — apenas quando algum projeto de navegador vai rodar.
+   * Localmente reaproveita um servidor ja em pe; no CI sempre parte do build.
+   *
+   * A API NAO e gerenciada aqui de proposito: ela precisa de Postgres migrado e semeado
+   * antes de subir, e embutir essa cadeia no `webServer` esconderia a falha de banco
+   * dentro do log do Playwright. No CI o job a sobe explicitamente.
    */
-  webServer: {
-    command: IS_CI ? 'npm run preview' : 'npm run build && npm run preview',
-    cwd: '../frontend',
-    url: BASE_URL,
-    reuseExistingServer: !IS_CI,
-    timeout: 120_000,
-    stdout: 'ignore',
-    stderr: 'pipe',
-  },
+  webServer: NEEDS_FRONTEND
+    ? {
+        command: ENV.isCI ? 'npm run preview' : 'npm run build && npm run preview',
+        cwd: '../frontend',
+        url: ENV.baseUrl,
+        reuseExistingServer: !ENV.isCI,
+        timeout: 120_000,
+        stdout: 'ignore',
+        stderr: 'pipe',
+      }
+    : undefined,
 })

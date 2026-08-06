@@ -8,7 +8,7 @@ test.describe('Listagem de produtos', () => {
     await productsPage.waitForResults()
   })
 
-  test('exibe o catálogo completo', async ({ productsPage }) => {
+  test('exibe o catálogo completo', { tag: '@smoke' }, async ({ productsPage }) => {
     await productsPage.expectResultCount(CATALOG_SIZE)
     await expect(productsPage.resultCount).toHaveText(`${CATALOG_SIZE} produtos encontrados`)
   })
