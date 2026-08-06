@@ -1,0 +1,362 @@
+// ---------------------------------------------------------------------------
+// TechStore — schema do banco de dados
+//
+// Convencao adotada: os NOMES no TypeScript seguem o padrao da linguagem (camelCase,
+// modelo no singular) e os nomes no BANCO seguem o padrao SQL (snake_case, tabela no
+// plural), ligados por @map / @@map.
+//
+// Poderiamos aceitar o padrao do Prisma e ter colunas "priceInCents" no Postgres. A
+// razao para nao fazer isso: identificadores em maiuscula no Postgres exigem aspas em
+// TODA consulta manual (`select "priceInCents" from "Product"`), e mais cedo ou mais
+// tarde alguem abre um psql para investigar um incidente. O custo e uma anotacao por
+// campo composto; o beneficio e um banco que se comporta como um banco.
+//
+// Detalhamento das relacoes em docs/database.md.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+// O tipo no banco se chama "user_role", nao "role": ROLE e palavra-chave do Postgres
+// (CREATE ROLE, GRANT ... TO role). Funciona entre aspas, mas obriga todo SQL manual a
+// lembrar disso — nome de tipo nao deve exigir cuidado especial para ser digitado.
+enum Role {
+  CUSTOMER
+  ADMIN
+
+  @@map("user_role")
+}
+
+/// Ciclo de vida do pedido. Deliberadamente curto: cada estado precisa de uma
+/// transicao que alguem consiga disparar. Estados como SHIPPED ou DELIVERED nao
+/// existem porque nao ha nada nesta aplicacao que os provoque — enum com estado
+/// inalcancavel e documentacao mentindo sobre o sistema.
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELED
+
+  @@map("order_status")
+}
+
+// ---------------------------------------------------------------------------
+// Identidade
+// ---------------------------------------------------------------------------
+
+model User {
+  id String @id @default(cuid())
+
+  name  String @db.VarChar(120)
+  email String @unique @db.VarChar(180)
+
+  /// NUNCA "password". O nome do campo e a primeira documentacao de que aqui mora um
+  /// hash bcrypt e nao a senha — e o que impede alguem de gravar texto puro por engano.
+  passwordHash String @map("password_hash")
+
+  role     Role    @default(CUSTOMER)
+  isActive Boolean @default(true) @map("is_active")
+
+  /// Exclusao logica. `DELETE /users/me` marca esta coluna em vez de remover a linha:
+  /// pedidos referenciam o usuario e sao fato financeiro (ver onDelete: Restrict abaixo).
+  deletedAt DateTime? @map("deleted_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cart          Cart?
+  orders        Order[]
+  refreshTokens RefreshToken[]
+
+  /// Toda listagem de usuario filtra por "nao excluido"; sem indice, isso e varredura.
+  @@index([deletedAt])
+  @@map("users")
+}
+
+/// Refresh token — o que torna o logout real.
+///
+/// JWT e stateless: um access token assinado vale ate expirar e o servidor nao consegue
+/// invalida-lo. Persistir o refresh token e o que permite revogar uma sessao de verdade.
+model RefreshToken {
+  id String @id @default(cuid())
+
+  /// HASH do token, nunca o token. Mesmo raciocinio de passwordHash: se esta tabela
+  /// vazar, o conteudo dela nao autentica ninguem.
+  tokenHash String @unique @map("token_hash")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Todos os tokens descendentes de um mesmo login compartilham a familia. Se um token
+  /// ja rotacionado for reapresentado, e sinal de roubo: revogamos a familia inteira,
+  /// nao apenas aquele token.
+  familyId String @map("family_id")
+
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  /// Contexto da sessao, para uma futura tela de "dispositivos conectados".
+  userAgent String? @map("user_agent") @db.VarChar(255)
+  ipAddress String? @map("ip_address") @db.VarChar(45)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Catalogo
+// ---------------------------------------------------------------------------
+
+/// Categoria como TABELA e nao como enum.
+///
+/// Enum seria mais simples, e o frontend ja tem as seis categorias fixas em uma uniao de
+/// tipos. Mas mudar um enum no Postgres e migration; criar uma categoria em uma tabela e
+/// um INSERT. Como o briefing pede CRUD de categorias, tabela e a unica opcao coerente.
+model Category {
+  id String @id @default(cuid())
+
+  /// Nome de exibicao, com acento — corresponde exatamente a uniao `ProductCategory`
+  /// do frontend ("Áudio", "Periféricos"), porque a UI filtra por ele.
+  name String @unique @db.VarChar(60)
+
+  /// Versao para URL, sem acento ("audio", "perifericos"). A API aceita os dois: o
+  /// frontend atual manda o nome, e um cliente novo manda o slug.
+  slug String @unique @db.VarChar(60)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id String @id @default(cuid())
+
+  slug        String @unique @db.VarChar(140)
+  name        String @db.VarChar(140)
+  brand       String @db.VarChar(80)
+  description String
+
+  /// Preco em CENTAVOS, sempre inteiro (ADR-008 do frontend).
+  ///
+  /// `0.1 + 0.2 = 0.30000000000000004` em ponto flutuante. Em um carrinho isso vira
+  /// total errado por centavos. Int nao tem esse problema por construcao. A alternativa
+  /// seria Decimal, correta mas mais cara: o Prisma devolve Decimal.js, que serializa
+  /// como string em JSON — mudaria o contrato que o frontend ja consome.
+  priceInCents Int @map("price_in_cents")
+
+  /// Float aqui, e Int no preco, de proposito: nota media e valor aproximado exibido com
+  /// uma casa decimal, onde erro de ponto flutuante nao tem consequencia. Dinheiro tem.
+  rating      Float
+  reviewCount Int   @map("review_count")
+
+  imageUrl String @map("image_url") @db.VarChar(255)
+  stock    Int    @default(0)
+
+  isActive Boolean @default(true) @map("is_active")
+
+  /// Texto pre-normalizado (minusculo, sem acento) com nome + marca + categoria +
+  /// descricao concatenados. Gravado na escrita, nunca calculado na leitura.
+  ///
+  /// Reproduz exatamente a semantica de busca que o frontend ja tem e que a suite ja
+  /// assevera: "audio" encontra "Áudio", e todos os termos precisam aparecer, em
+  /// qualquer ordem. A alternativa seria a extensao `unaccent` do Postgres, que exige
+  /// privilegio de superusuario — indisponivel em boa parte dos bancos gerenciados.
+  ///
+  /// Em escala real isto viraria `tsvector` com indice GIN; com 12 produtos, seria
+  /// complexidade sem beneficio mensuravel.
+  searchIndex String @map("search_index")
+
+  /// Relevancia = rating x reviewCount, gravada na escrita.
+  ///
+  /// `ORDER BY rating * review_count` e uma EXPRESSAO, e o `orderBy` do Prisma so aceita
+  /// colunas. Materializar o calculo torna a ordenacao padrao do catalogo indexavel em
+  /// vez de exigir SQL cru — e mantem a formula identica a do frontend, que a suite ja
+  /// exercita como ordem default da listagem.
+  relevanceScore Float @default(0) @map("relevance_score")
+
+  /// Nome normalizado (minusculo, sem acento) usado APENAS para ordenar.
+  ///
+  /// Ordenar por `name` deixaria o resultado a merce da COLLATION do banco, que varia com
+  /// o sistema operacional e com a instalacao: `Portuguese_Brazil.1252` no Windows, `C` ou
+  /// `en_US.utf8` em containers Linux. A mesma consulta devolveria ordens diferentes em
+  /// maquina de desenvolvedor e em CI — e o teste de ordenacao alternaria verde e vermelho
+  /// sem ninguem mexer no codigo.
+  ///
+  /// Normalizando na escrita, a ordem passa a depender so dos dados. De quebra, o
+  /// resultado casa com `localeCompare('pt-BR')` do frontend tambem para nomes acentuados:
+  /// "Ábaco" vira "abaco" e vem antes de "Earbuds", que e o que o usuario espera.
+  nameSort String @map("name_sort")
+
+  categoryId String   @map("category_id")
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  /// A listagem quase sempre filtra por ativo + categoria; indice composto cobre as duas.
+  @@index([isActive, categoryId])
+  @@index([priceInCents])
+  /// Ordenacao padrao da listagem.
+  @@index([relevanceScore])
+  @@index([nameSort])
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------------
+// Carrinho — estado mutavel, vive no servidor
+// ---------------------------------------------------------------------------
+
+/// Um carrinho ativo por usuario, garantido pelo @unique em userId.
+///
+/// A regra "um carrinho por usuario" e do NEGOCIO, e por isso mora no BANCO. Deixa-la
+/// apenas no service significaria que duas requisicoes simultaneas de "adicionar item"
+/// poderiam criar dois carrinhos — a restricao no banco e o unico lugar onde
+/// concorrencia nao passa.
+model Cart {
+  id String @id @default(cuid())
+
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items CartItem[]
+
+  @@map("carts")
+}
+
+/// Item do carrinho guarda REFERENCIA ao produto, nao snapshot.
+///
+/// Oposto do OrderItem, e a diferenca e conceitual: o carrinho e uma projecao viva do
+/// catalogo (mudou o preco, o usuario ve o novo antes de fechar a compra); o pedido e um
+/// fato consumado.
+model CartItem {
+  id String @id @default(cuid())
+
+  cartId String @map("cart_id")
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  quantity Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  /// Adicionar duas vezes o mesmo produto SOMA a quantidade, nao cria uma segunda linha.
+  /// Com a restricao no banco, um `upsert` resolve isso atomicamente; sem ela, duas
+  /// requisicoes simultaneas produziriam linhas duplicadas do mesmo produto.
+  @@unique([cartId, productId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+// ---------------------------------------------------------------------------
+// Pedidos — fato imutavel
+// ---------------------------------------------------------------------------
+
+model Order {
+  /// Sem @default: o id e gerado pelo service no formato `TS-4F2A9C`, contrato ja
+  /// asseverado pela automacao (`ORDER_ID_PATTERN`). Numero curto o suficiente para o
+  /// cliente ditar por telefone.
+  id String @id @db.VarChar(12)
+
+  userId String @map("user_id")
+  /// Restrict: apagar um usuario NAO pode apagar o historico de pedidos dele. E o motivo
+  /// de `DELETE /users/me` ser exclusao logica.
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  status OrderStatus @default(PENDING)
+
+  /// Totais PERSISTIDOS — ao contrario do carrinho, onde sao calculados.
+  ///
+  /// Recalcular o total de um pedido antigo com a regra de frete de hoje daria um numero
+  /// diferente do que o cliente pagou. Um pedido registra o que foi cobrado, nao o que
+  /// seria cobrado agora.
+  subtotalInCents Int @map("subtotal_in_cents")
+  shippingInCents Int @map("shipping_in_cents")
+  totalInCents    Int @map("total_in_cents")
+
+  /// Snapshot do comprador. O usuario pode trocar o e-mail depois; a nota fiscal, nao.
+  customerName  String @map("customer_name") @db.VarChar(120)
+  customerEmail String @map("customer_email") @db.VarChar(180)
+  /// Apenas digitos, sem mascara — mesma regra do frontend (ADR-013).
+  customerCpf   String @map("customer_cpf") @db.VarChar(11)
+  customerPhone String @map("customer_phone") @db.VarChar(11)
+
+  /// Snapshot do endereco de entrega, pelo mesmo motivo.
+  zipCode    String  @map("zip_code") @db.VarChar(8)
+  street     String  @db.VarChar(160)
+  number     String  @db.VarChar(20)
+  complement String? @db.VarChar(120)
+  district   String  @db.VarChar(120)
+  city       String  @db.VarChar(120)
+  state      String  @db.VarChar(2)
+
+  placedAt   DateTime  @default(now()) @map("placed_at")
+  canceledAt DateTime? @map("canceled_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items OrderItem[]
+
+  /// O historico e sempre "meus pedidos, do mais recente para o mais antigo".
+  @@index([userId, placedAt(sort: Desc)])
+  @@index([status])
+  @@map("orders")
+}
+
+/// Item do pedido guarda SNAPSHOT do produto.
+///
+/// Sem isto, reajustar um preco em 2027 reescreveria silenciosamente o historico de 2026.
+/// Isso e problema contabil, nao bug de software — e o tipo de defeito que so aparece
+/// numa auditoria, muito depois de ter sido introduzido.
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId String @map("order_id")
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// Opcional + SetNull: se o produto for removido do catalogo, o item do pedido
+  /// SOBREVIVE — perde apenas o vinculo. O snapshot abaixo mantem o pedido legivel.
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  productName String @map("product_name") @db.VarChar(140)
+  productSlug String @map("product_slug") @db.VarChar(140)
+
+  unitPriceInCents Int @map("unit_price_in_cents")
+  quantity         Int
+  /// Redundante em relacao a `unitPrice * quantity`, e persistido de proposito: e o valor
+  /// que foi somado no total. Recalcular na leitura abriria espaco para divergir dele.
+  lineTotalInCents Int @map("line_total_in_cents")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
