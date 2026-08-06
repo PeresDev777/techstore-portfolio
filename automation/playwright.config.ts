@@ -20,9 +20,21 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5_000 },
 
-  /* Paralelismo total local; no CI limitamos workers para reduzir flakiness por concorrencia. */
-  fullyParallel: true,
-  workers: IS_CI ? 2 : undefined,
+  /*
+   * Execucao SERIAL, e nao por preferencia: e uma consequencia direta de a aplicacao ter
+   * passado a ter backend.
+   *
+   * O carrinho e os pedidos vivem no servidor, entao dois testes em paralelo com o mesmo
+   * usuario disputam o mesmo carrinho, e um teste que compra baixa o estoque para todos
+   * os outros. Rodar em paralelo aqui produziria falhas dependentes de ordem — que
+   * parecem flakiness e custam horas de investigacao.
+   *
+   * O caminho para recuperar paralelismo, quando o tempo da suite justificar, e dar a
+   * cada worker o SEU proprio usuario (`POST /auth/register`) e reservar massa de estoque
+   * por worker. Fica registrado como evolucao; hoje a suite roda em poucos minutos.
+   */
+  fullyParallel: false,
+  workers: 1,
 
   /* Retry apenas no CI: mascarar flakiness na maquina do dev esconde problema real. */
   retries: IS_CI ? 2 : 0,

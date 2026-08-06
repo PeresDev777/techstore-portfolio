@@ -1,0 +1,14 @@
+# Artefatos GERADOS por execucao — nao sao codigo-fonte.
+#
+# Sem este arquivo, `format:check` reprova depois de qualquer execucao local: o glob
+# `**/*.{ts,json}` alcanca o storageState, o relatorio HTML e os resultados. No CI a
+# checagem roda antes de a suite gerar qualquer coisa, entao a falha so aparecia na
+# maquina de quem programa — o pior lugar para um atrito desses.
+.auth/
+reports/
+test-results/
+screenshots/
+videos/
+playwright-report/
+blob-report/
+node_modules/
