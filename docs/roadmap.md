@@ -32,7 +32,7 @@ Decisões em [architecture.md](architecture.md) (ADR-001 a ADR-019).
 | 7 | Swagger com envelope real, CHANGELOG, documentação técnica |
 | 8 | Refino, apoio à automação (`/test/reset`), CI da API |
 
-Decisões em [api-architecture.md](api-architecture.md) (ADR-020 a ADR-043).
+Decisões em [api-architecture.md](api-architecture.md) (ADR-020 a ADR-048).
 
 ---
 
