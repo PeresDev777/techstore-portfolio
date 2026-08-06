@@ -33,12 +33,19 @@ export interface Order {
   totals: CartTotals
 }
 
-/** Payload enviado ao serviço de pedidos. */
+/**
+ * Payload enviado ao serviço de pedidos.
+ *
+ * Repare no que NAO esta aqui: itens, precos e totais. Eles saem do carrinho NO SERVIDOR,
+ * e o preco e lido do banco dentro da transacao de fechamento.
+ *
+ * Nao e simplificacao — e seguranca. Se o cliente enviasse a lista, enviaria tambem os
+ * valores, e um pedido de R$ 0,01 seria aceito. O cliente escolhe o que comprar; o
+ * servidor decide quanto custa.
+ */
 export interface CreateOrderInput {
   customer: Customer
   address: Address
-  items: CartItem[]
-  totals: CartTotals
 }
 
 /**

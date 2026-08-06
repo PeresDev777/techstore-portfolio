@@ -2,10 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 
 import { AuthContext, type AuthContextValue } from '@/contexts/authContext'
 import * as authService from '@/services/authService'
-import type { AuthSession, Credentials, User } from '@/types/user'
-import { readJson, remove, writeJson } from '@/utils/storage'
-
-const SESSION_STORAGE_KEY = 'techstore:session'
+import { clearSession, readSession } from '@/services/http'
+import type { Credentials, User } from '@/types/user'
 
 /**
  * Provider de autenticação.
@@ -31,18 +29,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isMounted = true
 
     async function restoreSession() {
-      const stored = readJson<AuthSession>(SESSION_STORAGE_KEY)
+      const stored = readSession()
 
-      if (!stored?.token) {
+      if (!stored?.accessToken) {
         if (isMounted) setIsRestoringSession(false)
         return
       }
 
       try {
-        const validatedUser = await authService.validateSession(stored)
+        /*
+         * `GET /auth/me` valida de verdade: a API confere assinatura, expiracao E o estado
+         * atual da conta no banco. Se o access token estiver vencido, o cliente HTTP
+         * renova com o refresh token e repete — por isso a sessao sobrevive a horas com a
+         * aba fechada, sem que o usuario perceba.
+         */
+        const validatedUser = await authService.validateSession()
         if (isMounted) setUser(validatedUser)
       } catch {
-        remove(SESSION_STORAGE_KEY)
+        clearSession()
       } finally {
         if (isMounted) setIsRestoringSession(false)
       }
@@ -62,8 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * só interessa a um componente.
    */
   const login = useCallback(async (credentials: Credentials) => {
+    // O proprio servico persiste a sessao: os tokens sao dele, nao do provider.
     const session = await authService.login(credentials)
-    writeJson(SESSION_STORAGE_KEY, session)
     setUser(session.user)
   }, [])
 
@@ -76,12 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * seguro: encerrar primeiro e tratar a invalidação remota como best-effort.
    */
   const logout = useCallback(async () => {
-    remove(SESSION_STORAGE_KEY)
+    /*
+     * A ordem importa e nao mudou com a API real — ao contrario, ficou mais relevante.
+     * O `authService.logout` precisa do refresh token para revogar a familia no servidor,
+     * entao a leitura acontece dentro dele ANTES de limparmos; e a limpeza local vem
+     * primeiro para que qualquer interrupcao deixe o usuario deslogado, nao logado.
+     */
     setUser(null)
 
     try {
       await authService.logout()
     } catch {
+      clearSession()
       // A sessão local já foi encerrada; falha na invalidação remota não reverte isso.
     }
   }, [])

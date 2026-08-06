@@ -1,75 +1,58 @@
-import { PRODUCTS } from '@/data/products'
-import { API_ERROR_CODE, ApiError } from '@/services/apiError'
-import { respondWith } from '@/services/http'
-import { PRODUCT_SORT, type Product, type ProductQuery, type ProductSort } from '@/types/product'
-import { normalizeForSearch } from '@/utils/text'
+import { request, requestList } from '@/services/http'
+import { PRODUCT_SORT, type Product, type ProductQuery } from '@/types/product'
 
 /**
  * Serviço de catálogo.
  *
- * Busca, filtro e ordenação acontecem AQUI, e não no componente, de propósito: em uma
- * API real esse trabalho é do servidor. Mantendo a mesma fronteira no mock, trocar por
- * `fetch('/products?search=...')` não muda uma linha da UI.
+ * Busca, filtro e ordenação são do SERVIDOR — e sempre foram, na fronteira. O mock já
+ * fazia esse trabalho aqui justamente para que a troca por `fetch('/products?search=...')`
+ * não mudasse uma linha da UI. Foi o que aconteceu: nenhum componente ou hook precisou
+ * ser tocado nesta integração.
  */
 
-/** Campos considerados na busca textual, em ordem de relevância. */
-function buildSearchIndex(product: Product): string {
-  return normalizeForSearch(
-    [product.name, product.brand, product.category, product.description].join(' '),
-  )
-}
-
-function matchesSearch(product: Product, search: string): boolean {
-  const term = normalizeForSearch(search)
-  if (!term) return true
-
-  /*
-   * Todos os termos precisam aparecer (AND), em qualquer ordem.
-   * "fone aurora" e "aurora fone" devolvem o mesmo resultado — comportamento que o
-   * usuário espera e que uma busca por substring simples não entregaria.
-   */
-  const index = buildSearchIndex(product)
-  return term.split(/\s+/).every((word) => index.includes(word))
-}
-
-const SORT_COMPARATORS: Record<ProductSort, (a: Product, b: Product) => number> = {
-  [PRODUCT_SORT.relevance]: (a, b) => b.rating * b.reviewCount - a.rating * a.reviewCount,
-  [PRODUCT_SORT.priceAsc]: (a, b) => a.price - b.price,
-  [PRODUCT_SORT.priceDesc]: (a, b) => b.price - a.price,
-  [PRODUCT_SORT.ratingDesc]: (a, b) => b.rating - a.rating,
-  [PRODUCT_SORT.nameAsc]: (a, b) => a.name.localeCompare(b.name, 'pt-BR'),
-}
+/**
+ * Limite de itens na listagem.
+ *
+ * A aplicação não tem paginação na tela: o catálogo cabe em uma página. Pedimos o teto da
+ * API (100) para preservar o comportamento atual. No dia em que o catálogo crescer, a
+ * paginação já existe na API — o que falta é a UI, e o `total` devolvido por
+ * `requestList` já está disponível para isso.
+ */
+const CATALOG_PAGE_SIZE = 100
 
 export async function getProducts(query: ProductQuery = {}): Promise<Product[]> {
-  const { search = '', category = null, inStockOnly = false, sort = PRODUCT_SORT.relevance } = query
+  const { search, category, inStockOnly, sort = PRODUCT_SORT.relevance } = query
 
-  const filtered = PRODUCTS.filter((product) => {
-    if (category && product.category !== category) return false
-    if (inStockOnly && product.stock === 0) return false
-    return matchesSearch(product, search)
+  const result = await requestList<Product>('/products', {
+    query: {
+      search,
+      /*
+       * O filtro vai como NOME de exibição ("Áudio"), que é o que a query string da UI
+       * carrega. A API aceita nome ou slug de propósito — decisão tomada na Sprint 4
+       * prevendo exatamente este consumidor.
+       */
+      category,
+      // `inStock` é o nome do parâmetro na API; `inStockOnly` é o da UI. A tradução é
+      // responsabilidade desta camada, não do componente.
+      inStock: inStockOnly ? true : undefined,
+      sort,
+      limit: CATALOG_PAGE_SIZE,
+    },
   })
 
-  // Cópia antes de ordenar: `sort` muta o array, e `PRODUCTS` é a fonte de verdade.
-  const sorted = [...filtered].sort(SORT_COMPARATORS[sort])
-
-  return respondWith(sorted)
+  return result.data
 }
 
-export async function getProductById(productId: string): Promise<Product> {
-  const product = PRODUCTS.find((item) => item.id === productId)
-
-  if (!product) {
-    throw new ApiError(API_ERROR_CODE.NOT_FOUND, 'Produto não encontrado.')
-  }
-
-  return respondWith(product)
+/** Aceita id (`prd-001`) ou slug (`fone-aurora-pro`) — a API resolve os dois. */
+export function getProductById(productId: string): Promise<Product> {
+  return request<Product>(`/products/${encodeURIComponent(productId)}`)
 }
 
 /** Sugestões da mesma categoria, usadas na página de detalhe. */
 export async function getRelatedProducts(product: Product, limit = 3): Promise<Product[]> {
-  const related = PRODUCTS.filter(
-    (item) => item.category === product.category && item.id !== product.id,
-  ).slice(0, limit)
+  const result = await requestList<Product>(`/products/${encodeURIComponent(product.id)}/related`, {
+    query: { limit },
+  })
 
-  return respondWith(related)
+  return result.data
 }

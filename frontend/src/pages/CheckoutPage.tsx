@@ -31,7 +31,7 @@ const STATE_OPTIONS = [
 
 export function CheckoutPage() {
   const { user } = useAuth()
-  const { items, totals, isHydrating, clear } = useCart()
+  const { items, totals, isHydrating, clearLocal } = useCart()
   const navigate = useNavigate()
 
   /*
@@ -77,21 +77,30 @@ export function CheckoutPage() {
           city: values.city.trim(),
           state: values.state,
         },
-        items,
-        totals,
       })
 
       orderPlacedRef.current = true
-      clear()
+
+      /*
+       * `clearLocal` e nao `clear`: a API ja consumiu o carrinho DENTRO da transacao que
+       * criou o pedido. Chamar `DELETE /cart` aqui seria uma requisicao para apagar algo
+       * que nao existe mais — e, pior, mascararia um bug caso o servidor tivesse deixado
+       * de esvaziar o carrinho.
+       */
+      clearLocal()
 
       /*
        * `replace`: depois de comprar, o "voltar" do navegador não pode devolver o usuário
        * ao formulário de checkout — ele reenviaria um pedido já finalizado.
-       * O pedido viaja em `state` porque não existe backend para consultá-lo por id.
+       *
+       * O pedido continua viajando em `state` para a tela de sucesso. Agora ele TAMBEM
+       * existe na API (`GET /orders/:id`), entao a tela poderia busca-lo por id — o que
+       * resolveria o refresh na pagina de sucesso. Fica registrado como melhoria; mudar
+       * agora alteraria o comportamento coberto pelos testes de checkout.
        */
       void navigate(ROUTES.orderSuccess, { state: { order }, replace: true })
     },
-    [items, totals, clear, navigate],
+    [clearLocal, navigate],
   )
 
   const { values, errors, formError, isSubmitting, setValue, handleSubmit } = useForm({
