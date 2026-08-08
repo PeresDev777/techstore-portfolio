@@ -29,11 +29,11 @@ export class CartPage extends BasePage {
   }
 
   async increaseQuantity(productId: string): Promise<void> {
-    await this.itemRow(productId).getByTestId('quantity-increase').click()
+    await this.mutatingCart(() => this.itemRow(productId).getByTestId('quantity-increase').click())
   }
 
   async decreaseQuantity(productId: string): Promise<void> {
-    await this.itemRow(productId).getByTestId('quantity-decrease').click()
+    await this.mutatingCart(() => this.itemRow(productId).getByTestId('quantity-decrease').click())
   }
 
   async quantityOf(productId: string): Promise<number> {
@@ -45,11 +45,11 @@ export class CartPage extends BasePage {
   }
 
   async removeItem(productId: string): Promise<void> {
-    await this.itemRow(productId).getByTestId('cart-item-remove').click()
+    await this.mutatingCart(() => this.itemRow(productId).getByTestId('cart-item-remove').click())
   }
 
   async clearCart(): Promise<void> {
-    await this.byTestId('cart-clear').click()
+    await this.mutatingCart(() => this.byTestId('cart-clear').click())
   }
 
   async goToCheckout(): Promise<void> {

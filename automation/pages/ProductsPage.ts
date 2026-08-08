@@ -110,7 +110,9 @@ export class ProductsPage extends BasePage {
   }
 
   async addToCart(name: string): Promise<void> {
-    await this.cards.filter({ hasText: name }).getByTestId('add-to-cart').click()
+    await this.mutatingCart(() =>
+      this.cards.filter({ hasText: name }).getByTestId('add-to-cart').click(),
+    )
   }
 
   async expectResultCount(count: number): Promise<void> {

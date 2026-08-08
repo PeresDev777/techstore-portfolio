@@ -378,6 +378,38 @@ instante em que a grade foi desmontada e ainda não voltou.
 
 Generalizando: **espere pela causa observável, não pelo sintoma transitório.**
 
+**Extensão — a mesma regra vale para MUTAÇÕES, e não valia.**
+
+Encontrado durante a Sprint 3 da automação. Os page objects faziam
+`await locator.click()` e seguiam adiante. `click()` resolve quando o clique é
+**despachado**, não quando a requisição que ele dispara termina — e com o carrinho no
+servidor sob cache otimista (ADR-046), a tela e o badge reagem imediatamente pela via
+local enquanto o `POST /cart/items` ainda está em voo. O `page.goto('/cart')` da linha
+seguinte **abortava** essa requisição, e o item nunca chegava ao servidor.
+
+O sintoma:
+
+| Execução | Resultado |
+| --- | --- |
+| Um cenário isolado | passa |
+| O arquivo de carrinho inteiro | 10 de 15 |
+| A suíte completa | 19 falhas |
+
+Confirmado no log da API: nos cenários vermelhos **não existe `POST /cart/items`** — só os
+dois `GET /cart`. E confirmado no commit anterior, verde na véspera, que passou a falhar
+igual sem nenhuma alteração de código: a janela depende da carga da máquina.
+
+O item chegava ao servidor por sorte, e a sorte acabou quando o ambiente ficou mais lento.
+
+A correção é `BasePage.mutatingCart(action)`, que registra o `waitForResponse` **antes** de
+agir e só devolve o controle quando a resposta chega. Esperar pelo badge não serviria: ele
+sobe pelo redutor local antes de qualquer resposta, então subiria com a requisição ainda em
+voo — é exatamente o "sintoma transitório" contra o qual este ADR foi escrito.
+
+Efeito colateral medido: o arquivo de carrinho caiu de 1,9 min para 1,0 min, porque os
+timeouts de 10 s desapareceram. **Corrigir a corrida deixou a suíte mais rápida, não mais
+lenta** — a espera explícita custa milissegundos, e a implícita custava o timeout inteiro.
+
 ---
 
 ## ADR-019 — Política de evidências

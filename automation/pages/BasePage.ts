@@ -59,6 +59,36 @@ export abstract class BasePage {
   }
 
   /**
+   * Executa uma ação que MUTA o carrinho no servidor e só devolve o controle quando a
+   * resposta chegou.
+   *
+   * **Corrige uma corrida real, encontrada na auditoria da suíte.** `locator.click()`
+   * resolve quando o clique é despachado — não quando a requisição que ele dispara
+   * termina. O carrinho usa cache otimista (ADR-046): a tela e o badge reagem na hora,
+   * pela via local, e o `POST /cart/items` segue em voo. Um `page.goto()` logo depois
+   * **aborta** essa requisição, e o item nunca chega ao servidor.
+   *
+   * O sintoma era o pior possível: passava isolado e falhava na suíte completa, porque a
+   * janela depende da carga da máquina. Parecia flakiness e era uma dependência de tempo
+   * não declarada — o item chegava no servidor por sorte.
+   *
+   * Esperar pelo BADGE não resolveria: ele é atualizado pelo redutor local antes de
+   * qualquer resposta, então subiria com a requisição ainda em voo. A única prova de que
+   * o servidor recebeu é a própria resposta.
+   *
+   * É o ADR-018 aplicado às mutações: **espere pela causa observável, não pelo sintoma.**
+   */
+  protected async mutatingCart(action: () => Promise<void>): Promise<void> {
+    const settled = this.page.waitForResponse(
+      (response) => response.url().includes('/cart') && response.request().method() !== 'GET',
+      { timeout: 10_000 },
+    )
+
+    await action()
+    await settled
+  }
+
+  /**
    * Anexa uma captura ao relatório HTML como evidência de um passo relevante.
    *
    * Complementa — não substitui — o `screenshot: only-on-failure` da configuração:

@@ -60,7 +60,8 @@ export class ProductDetailPage extends BasePage {
   }
 
   async addToCart(): Promise<void> {
-    await this.addButton.click()
+    /* O seletor de quantidade acima é LOCAL — só este clique fala com o servidor. */
+    await this.mutatingCart(() => this.addButton.click())
   }
 
   /** Escolhe a quantidade e adiciona em um único passo — o caminho mais usado nos specs. */
