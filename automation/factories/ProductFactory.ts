@@ -4,14 +4,27 @@ import { fakerPT_BR as faker } from '@faker-js/faker'
 
 import type { CreateProductInput } from '@services/ProductService'
 
-/** Categorias do seed. Criar produto em categoria inexistente responde 422. */
+/**
+ * Categorias do seed, pelo SLUG.
+ *
+ * O campo se chama `category` na leitura e na escrita, e aceita coisas diferentes nas duas:
+ *
+ * | Rota                       | Resolve por        |
+ * | -------------------------- | ------------------ |
+ * | `GET /products?category=`  | nome **ou** slug   |
+ * | `POST` / `PATCH /products` | id **ou** slug     |
+ *
+ * Entao `Áudio` filtra o catalogo e **nao** cria produto — responde 422 com
+ * `errors[].field = 'category'`. Descoberto por uma execucao vermelha; o slug e o unico
+ * valor que serve aos dois caminhos.
+ */
 export const SEED_CATEGORIES = [
-  'Áudio',
-  'Notebooks',
-  'Smartphones',
-  'Periféricos',
-  'Monitores',
-  'Wearables',
+  'audio',
+  'notebooks',
+  'smartphones',
+  'perifericos',
+  'monitores',
+  'wearables',
 ] as const
 
 /**
@@ -34,12 +47,18 @@ export const ProductFactory = {
     const suffix = randomUUID().slice(0, 8)
 
     return {
-      name: `${faker.commerce.productName()} ${suffix}`,
+      name: `Produto QA ${suffix}`,
       brand: faker.company.name(),
       description: faker.commerce.productDescription(),
       /* Em CENTAVOS, inteiro: dinheiro em ponto flutuante acumula erro (ADR-008). */
       priceInCents: faker.number.int({ min: 1000, max: 900000 }),
       category: faker.helpers.arrayElement(SEED_CATEGORIES),
+      /*
+       * Obrigatorio no `CreateProductDto`. O catalogo usa SVGs versionados, entao o caminho
+       * segue o formato do seed — o arquivo nao precisa existir para a API aceitar, mas
+       * inventar um formato diferente esconderia uma divergencia de contrato.
+       */
+      imageUrl: `/products/produto-qa-${suffix}.svg`,
       stock: faker.number.int({ min: 1, max: 50 }),
       ...overrides,
     }

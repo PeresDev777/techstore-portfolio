@@ -142,8 +142,8 @@ do Playwright.
 | Tag         | Significado                                       | PR  | Main | Diário |
 | ----------- | ------------------------------------------------- | --- | ---- | ------ |
 | `@smoke`    | O sistema está de pé. 14 cenários (8 E2E + 6 API) | ✅  | ✅   | ✅     |
-| `@critical` | Caminho de receita: login → carrinho → pedido     | ✅  | ✅   | ✅     |
-| `@slow`     | Concorrência, expiração de token                  | —   | —    | ✅     |
+| `@critical` | Caminho de receita: 12 cenários (8 E2E + 4 API)   | ✅  | ✅   | ✅     |
+| `@slow`     | Concorrência na última unidade                    | —   | —    | ✅     |
 
 ```bash
 npm run test:smoke        # --grep @smoke
@@ -194,6 +194,27 @@ linha exata do log daquela requisição.
 **Retry é ZERO na suíte de API, inclusive no CI.** No E2E o retry compra estabilidade
 contra a rede. Num teste de concorrência, um teste que falha e passa na segunda tentativa é
 exatamente o defeito que se está caçando — o retry transformaria a descoberta em verde.
+
+---
+
+## Armadilhas de contrato
+
+Encontradas escrevendo os testes de API, todas por execução vermelha. Ficam registradas
+porque cada uma custou um ciclo de investigação:
+
+| Armadilha                          | O que acontece                                                                                                                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseURL` do Playwright            | Resolve por `new URL(path, base)`: `/products` sobre `.../api/v1` **descarta** o prefixo. O `ApiClient` monta a URL explicitamente           |
+| Entrada ≠ saída                    | O produto entra como `priceInCents` e sai como `price`. Os totais entram planos e saem em `totals: {}`                                       |
+| `id` do pedido                     | **É** o número `TS-4F2A9C`. Não existe campo `number`                                                                                        |
+| `category` na leitura ≠ na escrita | `GET /products?category=` aceita nome ou slug; `POST /products` aceita id ou slug. `Áudio` filtra e **não** cria                             |
+| Massa como corpo                   | Passar `USERS.valid` inteiro no login dá **422** — `forbidNonWhitelisted` recusa `id`, `name` e `role`                                       |
+| `click()` não espera a rede        | Resolve quando o clique é despachado. O `goto()` seguinte **aborta** o `POST` em voo e o item nunca chega ao servidor — use `mutatingCart()` |
+
+A segunda e a terceira linhas são o argumento prático para os testes de contrato da
+Sprint 4: os tipos em `services/types.ts` foram escritos à mão a partir dos DTOs de
+entrada e **erraram quase todo campo de saída**. Um tipo escrito à mão é uma segunda fonte
+de verdade, e ela diverge da primeira no dia em que é escrita.
 
 ---
 

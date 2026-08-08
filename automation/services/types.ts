@@ -97,54 +97,89 @@ export interface SessionPayload {
   expiresIn: number
 }
 
+/*
+ * As entidades abaixo espelham `components.schemas` de `/api/docs-json`.
+ *
+ * **Escritas a mao aqui, e isso e divida consciente.** A primeira versao deste arquivo foi
+ * deduzida dos DTOs de ENTRADA e errou quase todo campo de SAIDA: o preco do produto sai
+ * como `price` e nao `priceInCents`, os totais vem aninhados em `totals`, e o `id` do
+ * pedido JA E o numero `TS-XXXXXX` — nao existe campo `number`. Tres testes falharam com
+ * 422 e 500 antes de a divergencia aparecer.
+ *
+ * E a demonstracao pratica do que a Sprint 4 resolve: um tipo escrito a mao e uma SEGUNDA
+ * fonte de verdade, e ela diverge da primeira no dia em que e escrita. Estes tipos servem
+ * a ergonomia do TypeScript; quem assevera a FORMA da resposta e o teste de contrato,
+ * validando contra a spec publicada.
+ *
+ * Repare que entrada e saida usam nomes diferentes de proposito na API: `priceInCents` no
+ * DTO deixa a unidade explicita para quem escreve; `price` na entidade e o nome do dominio.
+ */
 export interface ProductPayload {
   id: string
   slug: string
   name: string
   brand: string
   description: string
-  priceInCents: number
-  category: string | { id: string; name: string; slug: string }
+  /** Em CENTAVOS, apesar do nome curto (ADR-008). */
+  price: number
+  category: string
+  categorySlug: string
   rating: number
   reviewCount: number
+  imageUrl: string
   stock: number
-  isActive?: boolean
 }
 
 export interface CartItemPayload {
-  productId: string
-  name: string
-  slug: string
-  unitPriceInCents: number
+  id: string
+  product: ProductPayload
   quantity: number
-  lineTotalInCents: number
+  lineTotal: number
   unavailable?: boolean
-  unavailableReason?: string
+  unavailableReason?: string | null
 }
 
+export interface CartTotals {
+  itemCount: number
+  lineCount: number
+  subtotal: number
+  shipping: number
+  total: number
+}
+
+/** Totais CALCULADOS, nunca persistidos — o oposto do pedido (ADR-026). */
 export interface CartPayload {
   items: CartItemPayload[]
-  subtotalInCents: number
-  shippingInCents: number
-  totalInCents: number
+  totals: CartTotals
 }
 
 export interface OrderItemPayload {
+  id: string
   productId: string
-  name: string
-  slug: string
-  unitPriceInCents: number
+  productName: string
+  productSlug: string
+  /** Congelado no fechamento. Reajuste no catalogo nao o altera. */
+  unitPrice: number
   quantity: number
-  lineTotalInCents: number
+  lineTotal: number
+}
+
+export interface OrderTotals {
+  subtotal: number
+  shipping: number
+  total: number
 }
 
 export interface OrderPayload {
+  /** O proprio numero do pedido: `TS-4F2A9C`. Nao existe campo `number` separado. */
   id: string
-  number: string
   status: 'PENDING' | 'PAID' | 'CANCELED'
+  placedAt: string
+  canceledAt: string | null
+  itemCount: number
+  /** Totais PERSISTIDOS: um pedido registra o que foi cobrado, nao o que custaria hoje. */
+  totals: OrderTotals
+  customer: { fullName: string; email: string; cpf: string; phone: string }
+  address: Record<string, string | null>
   items: OrderItemPayload[]
-  subtotalInCents: number
-  shippingInCents: number
-  totalInCents: number
-  createdAt: string
 }

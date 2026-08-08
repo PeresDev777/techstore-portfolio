@@ -23,6 +23,7 @@ export interface CreateProductInput {
   description: string
   priceInCents: number
   category: string
+  imageUrl: string
   stock: number
   [extra: string]: unknown
 }
