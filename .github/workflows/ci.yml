@@ -5,11 +5,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  # 06:00 UTC = 03:00 em Sao Paulo. O horario e deliberado: a execucao noturna e a UNICA
-  # que roda os cenarios `@slow` (concorrencia), e falhar de madrugada da o dia inteiro
-  # para investigar antes de alguem precisar do resultado.
+  # TEMPORARIO — validando o gatilho `schedule`, que nunca executou. Volta para
+  # '0 6 * * *' (03:00 em Sao Paulo) assim que a execucao provar o recorte `test:nightly`.
+  #
+  # O horario definitivo e deliberado: a noturna e a UNICA que roda os cenarios `@slow`
+  # (concorrencia), e falhar de madrugada da o dia inteiro para investigar.
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '20 18 * * *'
   # Permite disparar manualmente pela aba Actions.
   workflow_dispatch:
 
