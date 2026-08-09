@@ -133,20 +133,19 @@ npm run install:browsers
 npm test
 ```
 
-O frontend **não** precisa de passo próprio: o Playwright o constrói e serve sozinho, e
-`src/services/http.ts` já cai em `http://localhost:3000/api/v1` quando `VITE_API_URL` não
-existe. Copie `frontend/.env.example` apenas para apontar a aplicação para outro host.
+**O frontend não tem passo próprio.** O Playwright o constrói e serve sozinho — e
+**apenas** quando um projeto de navegador vai rodar, então `npm run test:api` não paga o
+build de uma aplicação React que nenhum teste de API abre. O `.env` dele é opcional:
+`src/services/http.ts` já cai em `http://localhost:3000/api/v1` por padrão. Copie
+`frontend/.env.example` só para apontar a aplicação para outro host.
 
-> Verificado a partir de um clone limpo: os comandos acima levam de zero a **171 passed**.
-> Se o volume do Postgres for novo, `prisma:deploy` aplica as migrations em vez de
-> reportar "no pending migrations".
-
-O frontend sobe sozinho pelo `webServer` do Playwright — **apenas** quando um projeto de
-navegador vai rodar. `npm run test:api` não paga o build de uma aplicação React que nenhum
-teste de API abre.
+> **Verificado a partir de um clone limpo:** os comandos acima levam de zero a
+> `171 passed` — os 170 cenários mais o projeto de setup, que o Playwright conta junto.
+> Com um volume de Postgres novo, `prisma:deploy` aplica as migrations em vez de reportar
+> "no pending migrations".
 
 ```bash
-npm test                  # tudo (170 cenários, ~2,4 min)
+npm test                  # tudo (170 cenários + setup, ~2,4 min)
 npm run test:e2e          # só navegador
 npm run test:api          # só HTTP
 npm run test:contract     # só contrato
