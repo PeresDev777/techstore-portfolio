@@ -19,6 +19,16 @@ export class ProductsPage extends BasePage {
     return this.byTestId('product-search')
   }
 
+  /** Seletor de categoria. Publico: o spec assevera que o estado sobrevive ao reload. */
+  get categoryFilter(): Locator {
+    return this.byTestId('product-category-filter')
+  }
+
+  /** Selo de esgotado no card de um produto. */
+  outOfStockBadgeFor(name: string): Locator {
+    return this.cards.filter({ hasText: name }).getByTestId('product-out-of-stock')
+  }
+
   /**
    * Abre a listagem já com filtros aplicados.
    *
@@ -110,11 +120,9 @@ export class ProductsPage extends BasePage {
   }
 
   async addToCart(name: string): Promise<void> {
-    await this.cards.filter({ hasText: name }).getByTestId('add-to-cart').click()
-  }
-
-  async expectResultCount(count: number): Promise<void> {
-    await expect(this.cards).toHaveCount(count)
+    await this.mutatingCart(() =>
+      this.cards.filter({ hasText: name }).getByTestId('add-to-cart').click(),
+    )
   }
 
   /** Preços exibidos, em centavos, na ordem em que aparecem na grade. */
@@ -131,10 +139,5 @@ export class ProductsPage extends BasePage {
 
   async priceOf(name: string): Promise<number> {
     return readCents(this.cards.filter({ hasText: name }).getByTestId('product-price'))
-  }
-
-  async expectEmptyState(): Promise<void> {
-    await expect(this.emptyState).toBeVisible()
-    await expect(this.cards).toHaveCount(0)
   }
 }

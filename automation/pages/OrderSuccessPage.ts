@@ -33,9 +33,15 @@ export class OrderSuccessPage extends BasePage {
   /**
    * Confere que a confirmação reflete o que foi digitado no checkout.
    *
-   * Recebe as máscaras esperadas separadamente porque o formulário guarda dígitos puros e
-   * a confirmação exibe formatado — asseverar isso prova que a conversão aconteceu nas
-   * duas pontas.
+   * **Fica como INVARIANTE, e nao como expectativa de um teste.** A relacao asseverada e
+   * "o que a confirmacao mostra e o que o checkout enviou" — verdadeira para qualquer
+   * comprador e qualquer endereco, independente da massa. Move-la para o spec obrigaria a
+   * repetir sete asseveracoes em cada cenario de compra, sem que o teste ganhasse uma
+   * afirmacao propria: ele continuaria dizendo exatamente isto.
+   *
+   * As mascaras chegam por parametro porque o formulario guarda digitos puros e a
+   * confirmacao exibe formatado — asseverar isso prova que a conversao aconteceu nas duas
+   * pontas.
    */
   async expectOrderMatches(
     data: CheckoutData,

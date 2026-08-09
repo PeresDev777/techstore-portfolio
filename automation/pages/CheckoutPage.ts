@@ -1,4 +1,4 @@
-import { expect, type Locator } from '@playwright/test'
+import type { Locator } from '@playwright/test'
 
 import { BasePage } from '@pages/BasePage'
 import { HeaderComponent } from '@pages/components/HeaderComponent'
@@ -76,24 +76,6 @@ export class CheckoutPage extends BasePage {
     await this.submit()
   }
 
-  async expectFieldError(name: CheckoutField, message: string): Promise<void> {
-    await expect(this.fieldError(name)).toHaveText(message)
-  }
-
-  async expectNoFieldError(name: CheckoutField): Promise<void> {
-    await expect(this.fieldError(name)).toBeHidden()
-  }
-
-  async expectMaskedValue(name: CheckoutField, masked: string): Promise<void> {
-    await expect(this.field(name)).toHaveValue(masked)
-  }
-
-  /** Os campos pessoais já vêm preenchidos com os dados da sessão. */
-  async expectPrefilledFrom(name: string, email: string): Promise<void> {
-    await expect(this.field('fullName')).toHaveValue(name)
-    await expect(this.field('email')).toHaveValue(email)
-  }
-
   async summaryTotalInCents(): Promise<number> {
     return readCents(this.byTestId('summary-total'))
   }
@@ -104,9 +86,5 @@ export class CheckoutPage extends BasePage {
 
   async summaryShippingInCents(): Promise<number> {
     return readCents(this.byTestId('summary-shipping'))
-  }
-
-  async expectSummaryItemCount(count: number): Promise<void> {
-    await expect(this.summaryItems).toHaveCount(count)
   }
 }

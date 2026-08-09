@@ -24,8 +24,21 @@
       "@pages/*": ["./pages/*"],
       "@fixtures/*": ["./fixtures/*"],
       "@utils/*": ["./utils/*"],
-      "@data/*": ["./data/*"]
+      "@data/*": ["./data/*"],
+      "@services/*": ["./services/*"],
+      "@factories/*": ["./factories/*"],
+      "@schemas/*": ["./schemas/*"]
     }
   },
-  "include": ["tests", "pages", "fixtures", "utils", "data", "playwright.config.ts"]
+  "include": [
+    "tests",
+    "pages",
+    "fixtures",
+    "utils",
+    "data",
+    "services",
+    "factories",
+    "schemas",
+    "playwright.config.ts"
+  ]
 }

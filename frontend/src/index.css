@@ -12,7 +12,23 @@
   --color-brand-600: oklch(0.51 0.22 275);
   --color-brand-700: oklch(0.44 0.2 275);
 
-  --color-ink-400: oklch(0.62 0.02 265);
+  /*
+   * `ink-400` e `success-600` foram ESCURECIDOS para passar em contraste 4.5:1, exigencia
+   * de WCAG 2.1 AA para texto normal. Os valores anteriores davam 3.64:1 e 4.28:1 sobre
+   * branco — calculados, nao estimados.
+   *
+   * O alvo e o fundo MAIS ESCURO em que o texto aparece, e nao o branco: `surface-muted`
+   * (0.98) e onde a listagem e o resumo do carrinho renderizam. Foi essa diferenca que a
+   * primeira tentativa errou — L=0.56 passava com folga sobre branco (4.66:1) e reprovava
+   * sobre muted (4.40:1), e o axe pegou. Contraste depende do PAR, nunca da cor sozinha.
+   *
+   * Em L=0.53: 5.28:1 sobre branco, 4.99:1 sobre muted.
+   *
+   * `ink-400` continua mais claro que `ink-500` (0.52), entao a rampa segue ordenada. A
+   * distincao visual entre os dois encolheu, e e um preco consciente: um cinza que o
+   * usuario nao le nao esta comunicando hierarquia, esta escondendo informacao.
+   */
+  --color-ink-400: oklch(0.53 0.02 265);
   --color-ink-500: oklch(0.52 0.02 265);
   --color-ink-700: oklch(0.34 0.03 265);
   --color-ink-900: oklch(0.21 0.03 265);
@@ -25,7 +41,7 @@
   --color-danger-700: oklch(0.47 0.19 25);
 
   --color-success-50: oklch(0.96 0.04 155);
-  --color-success-600: oklch(0.56 0.15 155);
+  --color-success-600: oklch(0.52 0.15 155);
 
   --radius-card: 0.75rem;
 }

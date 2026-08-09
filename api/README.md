@@ -5,7 +5,7 @@ frontend React deste repositorio e e o alvo da suite de QA Automation.
 
 | Documento                                                        | Conteudo                                      |
 | ---------------------------------------------------------------- | --------------------------------------------- |
-| [../docs/api-architecture.md](../docs/api-architecture.md)       | 24 decisoes arquiteturais (ADR-020 a ADR-043) |
+| [../docs/api-architecture.md](../docs/api-architecture.md)       | 29 decisoes arquiteturais (ADR-020 a ADR-048) |
 | [../docs/database.md](../docs/database.md)                       | Modelo, relacoes, indices e seed              |
 | [../docs/authentication-flow.md](../docs/authentication-flow.md) | Fluxo de sessao com diagramas de sequencia    |
 | [../docs/conventions.md](../docs/conventions.md)                 | Convencoes de codigo, commits e API           |
@@ -157,7 +157,21 @@ exceto as marcadas como publicas.
 | `GET`                       | `/api/v1/categories`                 | publica     | Categorias com contagem de produtos ativos         |
 | `GET`                       | `/api/v1/categories/:idOrSlug`       | publica     | Categoria por id ou slug                           |
 | `POST` · `PATCH` · `DELETE` | `/api/v1/categories[/:id]`           | **admin**   | CRUD de categorias                                 |
+| `GET`                       | `/api/v1/cart`                       | autenticada | Carrinho do usuario, com totais calculados         |
+| `POST`                      | `/api/v1/cart/items`                 | autenticada | Adiciona item (SOMA se ja existe)                  |
+| `PATCH`                     | `/api/v1/cart/items/:productId`      | autenticada | Quantidade ABSOLUTA, minimo 1                      |
+| `DELETE`                    | `/api/v1/cart/items/:productId`      | autenticada | Remove um item                                     |
+| `DELETE`                    | `/api/v1/cart`                       | autenticada | Esvazia o carrinho                                 |
+| `POST`                      | `/api/v1/orders`                     | autenticada | Fecha o pedido a partir do carrinho (transacional) |
+| `GET`                       | `/api/v1/orders`                     | autenticada | Historico do usuario (paginado)                    |
+| `GET`                       | `/api/v1/orders/:id`                 | autenticada | Pedido por id; de outro usuario responde **404**   |
+| `POST`                      | `/api/v1/orders/:id/cancel`          | autenticada | Cancela `PENDING` e devolve o estoque              |
+| `POST`                      | `/api/v1/orders/:id/pay`             | autenticada | Simula pagamento: `PENDING` -> `PAID` (ADR-040)    |
+| `POST`                      | `/api/v1/test/reset`                 | publica\*   | Restaura o seed. **Nao existe em producao**        |
 | `GET`                       | `/api/health` · `/api/health/ready`  | publica     | Liveness e readiness                               |
+
+\* `/test/reset` so e montada quando `NODE_ENV !== production` (ADR-041). Nao ha guard —
+o modulo inteiro deixa de ser registrado.
 
 `/refresh` e `/logout` sao publicas de proposito: quem as chama esta justamente com o
 access token vencido. A prova de identidade nelas e o proprio refresh token.

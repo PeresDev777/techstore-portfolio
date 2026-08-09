@@ -28,12 +28,17 @@ export class CartPage extends BasePage {
     return this.page.locator(`[data-testid="cart-item"][data-product-id="${productId}"]`)
   }
 
+  /** Botao de diminuir de uma linha. Exposto porque o spec assevera o estado dele. */
+  decreaseButtonFor(productId: string): Locator {
+    return this.itemRow(productId).getByTestId('quantity-decrease')
+  }
+
   async increaseQuantity(productId: string): Promise<void> {
-    await this.itemRow(productId).getByTestId('quantity-increase').click()
+    await this.mutatingCart(() => this.itemRow(productId).getByTestId('quantity-increase').click())
   }
 
   async decreaseQuantity(productId: string): Promise<void> {
-    await this.itemRow(productId).getByTestId('quantity-decrease').click()
+    await this.mutatingCart(() => this.itemRow(productId).getByTestId('quantity-decrease').click())
   }
 
   async quantityOf(productId: string): Promise<number> {
@@ -45,11 +50,11 @@ export class CartPage extends BasePage {
   }
 
   async removeItem(productId: string): Promise<void> {
-    await this.itemRow(productId).getByTestId('cart-item-remove').click()
+    await this.mutatingCart(() => this.itemRow(productId).getByTestId('cart-item-remove').click())
   }
 
   async clearCart(): Promise<void> {
-    await this.byTestId('cart-clear').click()
+    await this.mutatingCart(() => this.byTestId('cart-clear').click())
   }
 
   async goToCheckout(): Promise<void> {
@@ -70,15 +75,6 @@ export class CartPage extends BasePage {
 
   async totalInCents(): Promise<number> {
     return readCents(this.total)
-  }
-
-  async expectEmpty(): Promise<void> {
-    await expect(this.emptyState).toBeVisible()
-    await expect(this.items).toHaveCount(0)
-  }
-
-  async expectLineCount(count: number): Promise<void> {
-    await expect(this.items).toHaveCount(count)
   }
 
   /**

@@ -4,6 +4,19 @@
 # apenas os arquivos staged que estao sob esse diretorio.
 #
 # E por isso que a raiz nao precisa de eslint nem prettier instalados: ela hospeda o
-# gatilho, nao as ferramentas. Frontend e automation seguem intocados por este hook —
-# quando quiserem, basta repetir o bloco apontando para o diretorio deles.
-cd api && npx lint-staged
+# gatilho, nao as ferramentas.
+#
+# Os tres projetos sao percorridos em sequencia. Ate a Sprint 1 da suite de automacao
+# apenas `api` era verificado — o que deixava justamente o projeto de QA como o unico
+# sem protecao de pre-commit. Um repositorio de portfolio cujo framework de testes e a
+# parte menos verificada e uma contradicao que quem avalia percebe.
+#
+# `git diff --cached --quiet -- "$dir"` pula o projeto quando nao ha nada staged nele:
+# sem isso, um commit que so toca a documentacao pagaria tres inicializacoes do
+# lint-staged para nao fazer nada.
+for dir in api frontend automation; do
+  if ! git diff --cached --quiet -- "$dir"; then
+    echo "→ lint-staged em $dir"
+    (cd "$dir" && npx lint-staged) || exit 1
+  fi
+done

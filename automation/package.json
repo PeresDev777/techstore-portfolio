@@ -9,8 +9,13 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
-    "test:login": "playwright test tests/login",
-    "test:e2e": "playwright test tests/e2e",
+    "test:e2e": "playwright test --project=e2e",
+    "test:api": "playwright test --project=api",
+    "test:contract": "playwright test --project=contract",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:pr": "playwright test --grep \"@smoke|@critical\"",
+    "test:regression": "playwright test --grep-invert @slow",
+    "test:nightly": "playwright test",
     "report": "playwright show-report reports/html",
     "trace": "playwright show-trace",
     "codegen": "playwright codegen http://localhost:4173",
@@ -18,16 +23,33 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "format:check": "prettier --check \"**/*.{ts,json}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "contract:baseline": "tsx schemas/update-baseline.ts"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix --no-warn-ignored"
+    ],
+    "*.{json,md,yml}": [
+      "prettier --write"
+    ]
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.28.0",
+    "@faker-js/faker": "^10.5.0",
     "@playwright/test": "^1.52.0",
     "@types/node": "^22.15.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "dotenv": "^17.4.2",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-playwright": "^2.2.0",
+    "lint-staged": "^17.3.0",
     "prettier": "^3.5.3",
+    "tsx": "^4.23.11",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.33.0"
   }

@@ -5,7 +5,7 @@ O ecossistema tem três projetos no mesmo repositório, comunicando-se apenas po
 ```
 frontend/   React + TypeScript          aplicação sob teste
 api/        NestJS + Prisma + Postgres  fonte da verdade
-automation/ Playwright + TypeScript     suíte E2E (e, em breve, de API)
+automation/ Playwright + TypeScript     suíte E2E, de API e de contrato
 ```
 
 ---
@@ -32,7 +32,7 @@ Decisões em [architecture.md](architecture.md) (ADR-001 a ADR-019).
 | 7 | Swagger com envelope real, CHANGELOG, documentação técnica |
 | 8 | Refino, apoio à automação (`/test/reset`), CI da API |
 
-Decisões em [api-architecture.md](api-architecture.md) (ADR-020 a ADR-043).
+Decisões em [api-architecture.md](api-architecture.md) (ADR-020 a ADR-048).
 
 ---
 
@@ -66,27 +66,55 @@ de reset ter sido construído na Sprint 8.
 
 ---
 
-## Depois — TechStore QA Automation
+## Suíte de QA Automation — CONCLUÍDA
 
-Terceiro projeto do portfólio: suíte de **testes de API** em Playwright, somada à suíte E2E
-existente.
+`automation/` deixou de ser uma suíte E2E e virou um framework com **três níveis**.
 
-O que a API já oferece para isso:
+| Nível | Cenários | Tempo | O que prova |
+| --- | --- | --- | --- |
+| E2E | 93 | ~2,7 min | O que o usuário vê e faz, incluindo 11 de acessibilidade |
+| API | 56 | ~27 s | O que não tem manifestação visual |
+| Contrato | 21 | ~30 s | A resposta bate com `/api/docs-json` |
 
-| Recurso | Uso no teste |
+Executada em oito sprints:
+
+| Sprint | Entrega |
 | --- | --- |
-| `POST /api/v1/test/reset` | Estado conhecido entre cenários |
-| `/api/docs-json` | Teste de contrato contra a especificação |
-| `code` em todo erro | Asserção imune a mudança de copy |
-| `errors[].field` | Asseverar qual campo falhou |
-| `x-request-id` | Correlacionar teste vermelho com o log |
-| `/api/health/ready` | `webServer` espera prontidão real |
-| Massa fixa | `usr-001`, `prd-001`, preços exatos |
+| 0 | Auditoria do repositório, estratégia, pirâmide, decisões pendentes |
+| 1 | Estrutura por tipo de suíte, três projetos do Playwright, tags, massa completa |
+| 2 | `ApiClient`, services por recurso, factories, asserção única do envelope |
+| 3 | 50 cenários de API para o que o navegador não alcança |
+| 4 | Contrato com schema derivado da spec e baseline versionada |
+| 5 | Auditoria dos E2E, sessão expirada, refatoração do POM |
+| 6–7 | Recorte da suíte por gatilho, com execução noturna |
+| 8 | Documentação, ADRs, performance do seed e acessibilidade |
 
-Cenários que a API foi construída para tornar testáveis: detecção de reuso de refresh
-token, limite de estoque sobre a soma no carrinho, concorrência no fechamento de pedido
-(dois pedidos simultâneos para a última unidade), imutabilidade do snapshot após reajuste
-de preço, e isolamento entre contas em carrinho e pedidos.
+Decisões em [automation-architecture.md](automation-architecture.md) (ADR-049 a ADR-054).
+A estratégia que as conecta está em [qa-strategy.md](qa-strategy.md).
+
+**O que a auditoria encontrou no caminho.** Dois defeitos reais, nenhum deles de teste:
+
+1. **O logout não encerrava a sessão local antes da chamada remota**, apesar de o ADR-012
+   afirmar que sim. Na janela da requisição, o `localStorage` guardava uma sessão válida —
+   o usuário clicava em "sair" e continuava dentro.
+2. **`click()` não espera a rede.** O `page.goto()` seguinte abortava o `POST /cart/items`
+   em voo, e o item nunca chegava ao servidor. Corrigir deixou a suíte **mais rápida**:
+   9,4 → 7,1 min, porque os timeouts desapareceram.
+
+Os dois foram reproduzidos no commit verde da véspera antes de qualquer conclusão. Era o
+que separava "flakiness" de bug real.
+
+**O gargalo que a medição encontrou.** `POST /test/reset` custava **1260 ms** e era pago
+antes de cada cenário: o seed executava `bcrypt.hash` para os 4 usuários a cada reinício, e
+o hash era **descartado** no caminho do `update`. Memoizado por processo:
+
+| | Antes | Depois |
+| --- | --- | --- |
+| `POST /test/reset` | 1260 ms | 410 ms |
+| Suíte completa | 276 s | **143 s** |
+
+A lição vale mais que o número: a otimização que parecia óbvia — credencial por worker —
+rendeu 11%. O ganho de 67% veio de medir o que sobrou em vez de supor (ADR-054).
 
 ---
 

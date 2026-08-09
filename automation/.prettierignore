@@ -12,3 +12,8 @@ videos/
 playwright-report/
 blob-report/
 node_modules/
+
+# Baseline do contrato: e a especificacao COMO A API A PUBLICA, byte a byte.
+# Reformatar aqui produziria um diff sem relacao com mudanca de contrato — exatamente o
+# ruido que tornaria a revisao do arquivo inutil.
+schemas/openapi.baseline.json

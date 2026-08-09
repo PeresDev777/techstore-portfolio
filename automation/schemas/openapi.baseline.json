@@ -1,0 +1,3614 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "HealthController_liveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/LivenessEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Liveness — indica se o processo esta no ar.",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "operationId": "HealthController_readiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful\n\nTodas as dependências no ar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ReadinessEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Health Check is not successful\n\nAlguma dependência está fora.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "SERVICE_UNAVAILABLE"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Readiness — verifica as dependencias externas (Postgres).",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "E-mail já cadastrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "CONFLICT"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Dados inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "VALIDATION_ERROR"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cria uma conta de cliente.",
+        "tags": [
+          "Autenticação"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AuthSessionEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "E-mail ou senha inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "INVALID_CREDENTIALS"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Conta desativada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "ACCOUNT_DISABLED"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Autentica e devolve os tokens da sessão.",
+        "tags": [
+          "Autenticação"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RefreshedTokensEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessão inválida, expirada ou encerrada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "UNAUTHENTICATED"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Troca o refresh token por um novo par de tokens.",
+        "tags": [
+          "Autenticação"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sessão encerrada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "null",
+                          "nullable": true,
+                          "example": null
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Encerra a sessão, revogando a família de refresh tokens.",
+        "tags": [
+          "Autenticação"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Autenticação necessária.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "UNAUTHENTICATED"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Dados do usuário autenticado.",
+        "tags": [
+          "Autenticação"
+        ]
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "operationId": "UsersController_findMe_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Perfil do usuário autenticado.",
+        "tags": [
+          "Usuários"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_updateMe_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "E-mail já cadastrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "CONFLICT"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Atualiza nome e/ou e-mail do usuário autenticado.",
+        "tags": [
+          "Usuários"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_removeMe_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Conta excluída e sessões revogadas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "null",
+                          "nullable": true,
+                          "example": null
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Exclui a própria conta (exclusão lógica).",
+        "tags": [
+          "Usuários"
+        ]
+      }
+    },
+    "/api/v1/users/me/password": {
+      "patch": {
+        "operationId": "UsersController_changePassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Senha alterada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "null",
+                          "nullable": true,
+                          "example": null
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Senha atual incorreta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "CONFLICT"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Troca a senha (exige a senha atual).",
+        "tags": [
+          "Usuários"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "operationId": "UsersController_findAll_v1",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Pagina desejada, base 1.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Itens por pagina.\n\nO teto de 100 nao e detalhe: sem ele, `?limit=1000000` e um vetor de negacao de\nservico gratuito — um unico cliente derruba o banco pedindo a tabela inteira.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UserEntity"
+                          }
+                        },
+                        "pagination": {
+                          "$ref": "#/components/schemas/PaginationDto"
+                        }
+                      },
+                      "required": [
+                        "data",
+                        "pagination"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sem permissão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "FORBIDDEN"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Lista usuários (administrador).",
+        "tags": [
+          "Usuários"
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuário não encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "NOT_FOUND"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Busca um usuário por id (administrador).",
+        "tags": [
+          "Usuários"
+        ]
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "operationId": "CategoriesController_findAll_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CategoryEntity"
+                          }
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Lista as categorias com a contagem de produtos ativos.",
+        "tags": [
+          "Categorias"
+        ]
+      },
+      "post": {
+        "operationId": "CategoriesController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CategoryEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nome ou slug já em uso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "CONFLICT"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Cria uma categoria (administrador).",
+        "tags": [
+          "Categorias"
+        ]
+      }
+    },
+    "/api/v1/categories/{identifier}": {
+      "get": {
+        "operationId": "CategoriesController_findOne_v1",
+        "parameters": [
+          {
+            "name": "identifier",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CategoryEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categoria não encontrada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "NOT_FOUND"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Busca uma categoria por id ou slug.",
+        "tags": [
+          "Categorias"
+        ]
+      }
+    },
+    "/api/v1/categories/{id}": {
+      "patch": {
+        "operationId": "CategoriesController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CategoryEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Atualiza uma categoria (administrador).",
+        "tags": [
+          "Categorias"
+        ]
+      },
+      "delete": {
+        "operationId": "CategoriesController_remove_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categoria removida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "null",
+                          "nullable": true,
+                          "example": null
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Categoria em uso por produtos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "CONFLICT"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Remove uma categoria vazia (administrador).",
+        "tags": [
+          "Categorias"
+        ]
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "description": "A busca ignora acentos e exige que TODOS os termos apareçam, em qualquer ordem: `?search=vertex notebook` e `?search=notebook vertex` devolvem o mesmo resultado.",
+        "operationId": "ProductsController_findAll_v1",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Pagina desejada, base 1.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Itens por pagina.\n\nO teto de 100 nao e detalhe: sem ele, `?limit=1000000` e um vetor de negacao de\nservico gratuito — um unico cliente derruba o banco pedindo a tabela inteira.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Busca textual. Todos os termos precisam aparecer, em qualquer ordem, sem acento.",
+            "schema": {
+              "maxLength": 120,
+              "example": "fone aurora",
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Nome (\"Áudio\") ou slug (\"audio\").",
+            "schema": {
+              "example": "audio",
+              "type": "string"
+            }
+          },
+          {
+            "name": "inStock",
+            "required": false,
+            "in": "query",
+            "description": "Apenas produtos com estoque.",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "relevance",
+              "type": "string",
+              "enum": [
+                "relevance",
+                "price-asc",
+                "price-desc",
+                "rating-desc",
+                "name-asc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ProductEntity"
+                          }
+                        },
+                        "pagination": {
+                          "$ref": "#/components/schemas/PaginationDto"
+                        }
+                      },
+                      "required": [
+                        "data",
+                        "pagination"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Parâmetro de consulta inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "VALIDATION_ERROR"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Lista o catálogo com busca, filtros, ordenação e paginação.",
+        "tags": [
+          "Produtos"
+        ]
+      },
+      "post": {
+        "operationId": "ProductsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ProductEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sem permissão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "FORBIDDEN"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Slug em uso ou categoria inexistente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "CONFLICT"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Cria um produto (administrador).",
+        "tags": [
+          "Produtos"
+        ]
+      }
+    },
+    "/api/v1/products/{identifier}/related": {
+      "get": {
+        "operationId": "ProductsController_findRelated_v1",
+        "parameters": [
+          {
+            "name": "identifier",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ProductEntity"
+                          }
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Produtos relacionados (mesma categoria).",
+        "tags": [
+          "Produtos"
+        ]
+      }
+    },
+    "/api/v1/products/{identifier}": {
+      "get": {
+        "operationId": "ProductsController_findOne_v1",
+        "parameters": [
+          {
+            "name": "identifier",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ProductEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Produto não encontrado ou fora de catálogo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "NOT_FOUND"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Busca um produto por id ou slug.",
+        "tags": [
+          "Produtos"
+        ]
+      }
+    },
+    "/api/v1/products/{id}": {
+      "patch": {
+        "operationId": "ProductsController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ProductEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Atualiza um produto (administrador).",
+        "tags": [
+          "Produtos"
+        ]
+      },
+      "delete": {
+        "description": "Exclusão lógica: o produto sai das listagens e passa a responder 404, mas continua referenciado por pedidos históricos.",
+        "operationId": "ProductsController_remove_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Produto retirado de catálogo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "null",
+                          "nullable": true,
+                          "example": null
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Retira um produto de catálogo (administrador).",
+        "tags": [
+          "Produtos"
+        ]
+      }
+    },
+    "/api/v1/cart": {
+      "get": {
+        "operationId": "CartController_find_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CartEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Autenticação necessária.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "UNAUTHENTICATED"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Carrinho do usuário autenticado, com totais calculados.",
+        "tags": [
+          "Carrinho"
+        ]
+      },
+      "delete": {
+        "operationId": "CartController_clear_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CartEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Esvazia o carrinho.",
+        "tags": [
+          "Carrinho"
+        ]
+      }
+    },
+    "/api/v1/cart/items": {
+      "post": {
+        "description": "Produto já presente SOMA à quantidade existente em vez de criar uma segunda linha. O limite de estoque é aplicado sobre a soma resultante.",
+        "operationId": "CartController_addItem_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CartEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Produto não encontrado ou fora de catálogo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "NOT_FOUND"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Estoque insuficiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "INSUFFICIENT_STOCK"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Adiciona um produto ao carrinho.",
+        "tags": [
+          "Carrinho"
+        ]
+      }
+    },
+    "/api/v1/cart/items/{productId}": {
+      "patch": {
+        "description": "A quantidade é ABSOLUTA, não incremental. Para remover, use DELETE.",
+        "operationId": "CartController_updateItem_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "description": "Id ou slug do produto.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CartEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item não está no carrinho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "NOT_FOUND"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Estoque insuficiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "INSUFFICIENT_STOCK"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Define a quantidade de um item.",
+        "tags": [
+          "Carrinho"
+        ]
+      },
+      "delete": {
+        "operationId": "CartController_removeItem_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "description": "Id ou slug do produto.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CartEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item não está no carrinho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "NOT_FOUND"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Remove um item do carrinho.",
+        "tags": [
+          "Carrinho"
+        ]
+      }
+    },
+    "/api/v1/orders": {
+      "post": {
+        "description": "Os itens vêm do carrinho no servidor — o corpo traz apenas comprador e endereço. Estoque e preço são lidos do banco dentro da transação.",
+        "operationId": "OrdersController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/OrderEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Carrinho vazio ou estoque insuficiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "INSUFFICIENT_STOCK"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Dados do comprador ou do endereço inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "VALIDATION_ERROR"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Fecha o pedido a partir do carrinho.",
+        "tags": [
+          "Pedidos"
+        ]
+      },
+      "get": {
+        "operationId": "OrdersController_findAll_v1",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Pagina desejada, base 1.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Itens por pagina.\n\nO teto de 100 nao e detalhe: sem ele, `?limit=1000000` e um vetor de negacao de\nservico gratuito — um unico cliente derruba o banco pedindo a tabela inteira.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtra o historico por situacao. Ausente devolve todos.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "PAID",
+                "CANCELED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/OrderSummaryEntity"
+                          }
+                        },
+                        "pagination": {
+                          "$ref": "#/components/schemas/PaginationDto"
+                        }
+                      },
+                      "required": [
+                        "data",
+                        "pagination"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Histórico de pedidos do usuário, do mais recente ao mais antigo.",
+        "tags": [
+          "Pedidos"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "operationId": "OrdersController_findOne_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "TS-4F2A9C",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/OrderEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pedido inexistente OU de outro usuário.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "NOT_FOUND"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Busca um pedido do usuário autenticado.",
+        "tags": [
+          "Pedidos"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/cancel": {
+      "post": {
+        "description": "Apenas pedidos em PENDING. Pedido pago exige estorno, não cancelamento.",
+        "operationId": "OrdersController_cancel_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/OrderEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Pedido já cancelado ou já pago.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "CONFLICT"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Cancela um pedido pendente e devolve o estoque.",
+        "tags": [
+          "Pedidos"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/pay": {
+      "post": {
+        "description": "Não há gateway de pagamento neste projeto. O endpoint existe para tornar o estado PAID alcançável e completar o ciclo de vida do pedido.",
+        "operationId": "OrdersController_pay_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/OrderEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Pedido já pago ou cancelado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "example": "CONFLICT"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Confirma o pagamento (SIMULADO).",
+        "tags": [
+          "Pedidos"
+        ]
+      }
+    },
+    "/api/v1/test/reset": {
+      "post": {
+        "description": "Devolve o banco ao estado de contrato: 6 categorias, 4 usuários e 12 produtos com ids fixos. Indisponível em produção — o módulo não é registrado.",
+        "operationId": "TestSupportController_reset_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Banco reiniciado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelopeDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ResetSummaryEntity"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Apaga todos os dados e reaplica o seed.",
+        "tags": [
+          "Apoio a testes (apenas fora de produção)"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "TechStore API",
+    "description": "API REST da TechStore. Serve o frontend React e e o alvo da suite de QA Automation.\n\nTodas as respostas seguem um envelope unico: `{ success, message, data }` no sucesso e `{ success, message, code, errors }` no erro.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "access-token": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "SuccessEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Sempre `true` em respostas 2xx."
+          },
+          "message": {
+            "type": "string",
+            "example": "Produto recuperado com sucesso.",
+            "description": "Texto para humano. NUNCA use como chave de lógica — prefira o status."
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "LivenessEntity": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "uptime": {
+            "type": "number",
+            "example": 3600,
+            "description": "Segundos desde o início do processo."
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-08-06T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "status",
+          "uptime",
+          "timestamp"
+        ]
+      },
+      "FieldErrorDto": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "example": "customer.cpf",
+            "description": "Caminho do campo. Aninhados usam ponto: `address.zipCode`."
+          },
+          "message": {
+            "type": "string",
+            "example": "CPF inválido."
+          }
+        },
+        "required": [
+          "field",
+          "message"
+        ]
+      },
+      "ErrorEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false,
+            "description": "Sempre `false` em respostas de erro."
+          },
+          "message": {
+            "type": "string",
+            "example": "Falha na validação dos dados enviados."
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "VALIDATION_ERROR",
+              "UNAUTHENTICATED",
+              "INVALID_CREDENTIALS",
+              "ACCOUNT_DISABLED",
+              "FORBIDDEN",
+              "NOT_FOUND",
+              "CONFLICT",
+              "INSUFFICIENT_STOCK",
+              "RATE_LIMITED",
+              "INTERNAL_ERROR",
+              "SERVICE_UNAVAILABLE"
+            ],
+            "example": "VALIDATION_ERROR",
+            "description": "Código estável da falha. É por AQUI que o cliente decide comportamento — `message` muda com revisão de copy e com tradução, o código não."
+          },
+          "errors": {
+            "description": "Detalhamento por campo. Vazio quando o erro não é de validação.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldErrorDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "code",
+          "errors"
+        ]
+      },
+      "ReadinessEntity": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok",
+            "enum": [
+              "ok",
+              "error"
+            ]
+          },
+          "info": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "example": {
+              "database": {
+                "status": "up"
+              }
+            },
+            "description": "Dependências saudáveis."
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "example": {},
+            "description": "Dependências com falha. Vazio quando tudo está no ar."
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "example": {
+              "database": {
+                "status": "up"
+              }
+            },
+            "description": "`info` e `error` combinados."
+          }
+        },
+        "required": [
+          "status",
+          "info",
+          "error",
+          "details"
+        ]
+      },
+      "UserEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "usr-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Gabriel Peres"
+          },
+          "email": {
+            "type": "string",
+            "example": "qa@techstore.com"
+          },
+          "role": {
+            "enum": [
+              "CUSTOMER",
+              "ADMIN"
+            ],
+            "type": "string",
+            "example": "CUSTOMER"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-08-05T21:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "createdAt"
+        ]
+      },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120,
+            "example": "Gabriel Peres"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "novo.cliente@techstore.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72,
+            "pattern": "(?=.*[A-Za-z])(?=.*\\d)",
+            "example": "Test@1234",
+            "description": "Mínimo 8 caracteres, com ao menos uma letra e um número."
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password"
+        ]
+      },
+      "AuthSessionEntity": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserEntity"
+          },
+          "accessToken": {
+            "type": "string",
+            "description": "JWT de acesso. Enviar em `Authorization: Bearer <token>`."
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "Token opaco de renovação. Trocado a cada uso."
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "number",
+            "example": 900,
+            "description": "Validade do access token, em segundos."
+          }
+        },
+        "required": [
+          "user",
+          "accessToken",
+          "refreshToken",
+          "tokenType",
+          "expiresIn"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "qa@techstore.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "Sem politica de forca aqui, ao contrario do cadastro.\n\nO login precisa aceitar a senha que a conta TEM. Aplicar a regra atual no login\nrecusaria, com erro de validacao, quem cadastrou antes de a regra existir — e ainda\nrevelaria a politica para quem esta tentando adivinhar.",
+            "minLength": 1,
+            "example": "Test@1234"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RefreshedTokensEntity": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "number",
+            "example": 900
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "tokenType",
+          "expiresIn"
+        ]
+      },
+      "RefreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Refresh token recebido no login ou na renovação anterior."
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120,
+            "example": "Gabriel Peres"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "gabriel@techstore.com"
+          }
+        }
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Test@1234"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72,
+            "pattern": "(?=.*[A-Za-z])(?=.*\\d)",
+            "example": "NovaSenha@2026"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "PaginationDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "example": 10
+          },
+          "total": {
+            "type": "number",
+            "example": 12,
+            "description": "Total de registros que satisfazem o filtro."
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 2
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "CategoryEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cat-audio"
+          },
+          "name": {
+            "type": "string",
+            "example": "Áudio",
+            "description": "Nome de exibição, com acento."
+          },
+          "slug": {
+            "type": "string",
+            "example": "audio",
+            "description": "Versão para URL, sem acento."
+          },
+          "productCount": {
+            "type": "number",
+            "example": 2,
+            "description": "Quantidade de produtos ativos."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ]
+      },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60,
+            "example": "Câmeras"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Opcional: quando ausente, e derivado do nome com `slugify`.\n\nDeixar o cliente informar permite corrigir casos que a derivacao automatica erraria\n(siglas, nomes com numero), sem obrigar quem nao se importa a inventar um.",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "example": "cameras"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60,
+            "example": "Câmeras"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Opcional: quando ausente, e derivado do nome com `slugify`.\n\nDeixar o cliente informar permite corrigir casos que a derivacao automatica erraria\n(siglas, nomes com numero), sem obrigar quem nao se importa a inventar um.",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "example": "cameras"
+          }
+        }
+      },
+      "ProductEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "prd-001"
+          },
+          "slug": {
+            "type": "string",
+            "example": "fone-aurora-pro"
+          },
+          "name": {
+            "type": "string",
+            "example": "Fone Aurora Pro"
+          },
+          "brand": {
+            "type": "string",
+            "example": "Aurora"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "example": 129990,
+            "description": "Preço em CENTAVOS, sempre inteiro."
+          },
+          "category": {
+            "type": "string",
+            "example": "Áudio"
+          },
+          "categorySlug": {
+            "type": "string",
+            "example": "audio"
+          },
+          "rating": {
+            "type": "number",
+            "example": 4.8
+          },
+          "reviewCount": {
+            "type": "number",
+            "example": 1243
+          },
+          "imageUrl": {
+            "type": "string",
+            "example": "/products/fone-aurora-pro.svg"
+          },
+          "stock": {
+            "type": "number",
+            "example": 24
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "brand",
+          "description",
+          "price",
+          "category",
+          "categorySlug",
+          "rating",
+          "reviewCount",
+          "imageUrl",
+          "stock"
+        ]
+      },
+      "CreateProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 140,
+            "example": "Fone Aurora Pro"
+          },
+          "brand": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80,
+            "example": "Aurora"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000
+          },
+          "priceInCents": {
+            "type": "number",
+            "description": "Preço em centavos (inteiro).",
+            "minimum": 0,
+            "example": 129990
+          },
+          "category": {
+            "type": "string",
+            "example": "cat-audio",
+            "description": "Id ou slug da categoria."
+          },
+          "imageUrl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "/products/fone-aurora-pro.svg"
+          },
+          "stock": {
+            "type": "number",
+            "minimum": 0,
+            "example": 24
+          },
+          "slug": {
+            "type": "string",
+            "description": "Opcional: derivado do nome quando ausente.",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "example": "fone-aurora-pro"
+          },
+          "rating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5,
+            "example": 4.8
+          },
+          "reviewCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1243
+          }
+        },
+        "required": [
+          "name",
+          "brand",
+          "description",
+          "priceInCents",
+          "category",
+          "imageUrl",
+          "stock"
+        ]
+      },
+      "UpdateProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 140,
+            "example": "Fone Aurora Pro"
+          },
+          "brand": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80,
+            "example": "Aurora"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000
+          },
+          "priceInCents": {
+            "type": "number",
+            "description": "Preço em centavos (inteiro).",
+            "minimum": 0,
+            "example": 129990
+          },
+          "category": {
+            "type": "string",
+            "example": "cat-audio",
+            "description": "Id ou slug da categoria."
+          },
+          "imageUrl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "/products/fone-aurora-pro.svg"
+          },
+          "stock": {
+            "type": "number",
+            "minimum": 0,
+            "example": 24
+          },
+          "slug": {
+            "type": "string",
+            "description": "Opcional: derivado do nome quando ausente.",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "example": "fone-aurora-pro"
+          },
+          "rating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5,
+            "example": 4.8
+          },
+          "reviewCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1243
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Recoloca o produto em catálogo.",
+            "example": true
+          }
+        }
+      },
+      "CartItemEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductEntity"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 2
+          },
+          "lineTotal": {
+            "type": "number",
+            "example": 259980,
+            "description": "preço × quantidade, em centavos."
+          },
+          "unavailable": {
+            "type": "boolean",
+            "description": "O item nao pode ser comprado agora.\n\nAcontece quando o produto saiu de catalogo ou quando o estoque caiu abaixo da\nquantidade reservada DEPOIS de o item ter entrado no carrinho — um carrinho fica\nparado por dias, e o catalogo nao para.\n\nO item continua aparecendo, sinalizado, em vez de sumir em silencio: um total que\nmuda sozinho sem explicacao e pior que um aviso.",
+            "example": false
+          },
+          "unavailableReason": {
+            "type": "string",
+            "example": "Estoque insuficiente."
+          }
+        },
+        "required": [
+          "id",
+          "product",
+          "quantity",
+          "lineTotal",
+          "unavailable"
+        ]
+      },
+      "CartTotalsEntity": {
+        "type": "object",
+        "properties": {
+          "itemCount": {
+            "type": "number",
+            "example": 3,
+            "description": "Soma das quantidades."
+          },
+          "lineCount": {
+            "type": "number",
+            "example": 2,
+            "description": "Linhas distintas no carrinho."
+          },
+          "subtotal": {
+            "type": "number",
+            "example": 179980,
+            "description": "Em centavos."
+          },
+          "shipping": {
+            "type": "number",
+            "example": 0,
+            "description": "Em centavos. Zero acima de R$ 500,00."
+          },
+          "total": {
+            "type": "number",
+            "example": 179980,
+            "description": "Em centavos."
+          }
+        },
+        "required": [
+          "itemCount",
+          "lineCount",
+          "subtotal",
+          "shipping",
+          "total"
+        ]
+      },
+      "CartEntity": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemEntity"
+            }
+          },
+          "totals": {
+            "description": "Totais CALCULADOS, nunca persistidos.\n\nGuardar o total no carrinho criaria uma segunda fonte de verdade que pode divergir dos\nitens — o bug classico de carrinho. No PEDIDO e o oposto: la os totais sao gravados,\nporque um pedido registra o que foi cobrado, nao o que seria cobrado hoje.\n\nItens indisponiveis NAO entram nos totais: somar o que nao da para comprar produziria\num valor que o checkout nunca cobraria.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CartTotalsEntity"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "totals"
+        ]
+      },
+      "AddCartItemDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "example": "prd-001",
+            "description": "Id ou slug do produto."
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Teto de 100 por requisicao — nao e o limite de estoque, que e verificado depois\ncontra o produto real. E uma barreira de sanidade: `quantity: 999999999` seria aceito\npela validacao, rejeitado pelo estoque, e teria custado uma consulta ao banco para\ndescobrir o obvio.",
+            "minimum": 1,
+            "maximum": 100,
+            "example": 1
+          }
+        },
+        "required": [
+          "productId",
+          "quantity"
+        ]
+      },
+      "UpdateCartItemDto": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "description": "Minimo 1, e nao 0.\n\nO redutor do frontend trata quantidade zero como remocao (`cartReducer.ts`), e faz\nsentido la: o `QuantityStepper` decrementa ate zero e o item some, em um gesto so.\n\nNa API existe `DELETE /cart/items/:productId` para isso. Aceitar 0 aqui criaria dois\ncaminhos para a mesma operacao e um verbo mentiroso — um PATCH que apaga o recurso que\ndeveria atualizar. O cliente que decrementa ate zero chama o DELETE; a UI nao muda.",
+            "minimum": 1,
+            "maximum": 100,
+            "example": 2
+          }
+        },
+        "required": [
+          "quantity"
+        ]
+      },
+      "OrderTotalsEntity": {
+        "type": "object",
+        "properties": {
+          "subtotal": {
+            "type": "number",
+            "example": 259980
+          },
+          "shipping": {
+            "type": "number",
+            "example": 0
+          },
+          "total": {
+            "type": "number",
+            "example": 259980
+          }
+        },
+        "required": [
+          "subtotal",
+          "shipping",
+          "total"
+        ]
+      },
+      "OrderCustomerEntity": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "cpf": {
+            "type": "string",
+            "description": "Somente dígitos."
+          },
+          "phone": {
+            "type": "string",
+            "description": "Somente dígitos."
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "cpf",
+          "phone"
+        ]
+      },
+      "OrderAddressEntity": {
+        "type": "object",
+        "properties": {
+          "zipCode": {
+            "type": "string",
+            "description": "Somente dígitos."
+          },
+          "street": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "complement": {
+            "type": "string",
+            "nullable": true
+          },
+          "district": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "zipCode",
+          "street",
+          "number",
+          "district",
+          "city",
+          "state"
+        ]
+      },
+      "OrderItemEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string",
+            "nullable": true,
+            "example": "prd-001",
+            "description": "Nulo quando o produto foi removido do catálogo depois da compra."
+          },
+          "productName": {
+            "type": "string",
+            "example": "Fone Aurora Pro",
+            "description": "Nome NO MOMENTO da compra."
+          },
+          "productSlug": {
+            "type": "string",
+            "example": "fone-aurora-pro"
+          },
+          "unitPrice": {
+            "type": "number",
+            "example": 129990,
+            "description": "Preço unitário cobrado, em centavos."
+          },
+          "quantity": {
+            "type": "number",
+            "example": 2
+          },
+          "lineTotal": {
+            "type": "number",
+            "example": 259980
+          }
+        },
+        "required": [
+          "id",
+          "productName",
+          "productSlug",
+          "unitPrice",
+          "quantity",
+          "lineTotal"
+        ]
+      },
+      "OrderEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "TS-4F2A9C"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "PAID",
+              "CANCELED"
+            ],
+            "type": "string",
+            "example": "PENDING"
+          },
+          "placedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-08-06T12:00:00.000Z"
+          },
+          "canceledAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "itemCount": {
+            "type": "number",
+            "example": 3,
+            "description": "Soma das quantidades."
+          },
+          "totals": {
+            "$ref": "#/components/schemas/OrderTotalsEntity"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/OrderCustomerEntity"
+          },
+          "address": {
+            "$ref": "#/components/schemas/OrderAddressEntity"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemEntity"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "placedAt",
+          "itemCount",
+          "totals",
+          "customer",
+          "address",
+          "items"
+        ]
+      },
+      "OrderCustomerDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120,
+            "pattern": "^\\S+(\\s+\\S+)+$",
+            "example": "Gabriel Peres"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "qa@techstore.com"
+          },
+          "cpf": {
+            "type": "string",
+            "example": "11144477735",
+            "description": "Com ou sem máscara."
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 11,
+            "example": "11987654321",
+            "description": "DDD + número, com ou sem máscara."
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "cpf",
+          "phone"
+        ]
+      },
+      "OrderAddressDto": {
+        "type": "object",
+        "properties": {
+          "zipCode": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 8,
+            "example": "01310100"
+          },
+          "street": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160,
+            "example": "Avenida Paulista"
+          },
+          "number": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "example": "1000"
+          },
+          "complement": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 120,
+            "example": "Sala 42"
+          },
+          "district": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120,
+            "example": "Bela Vista"
+          },
+          "city": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120,
+            "example": "São Paulo"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "AC",
+              "AL",
+              "AP",
+              "AM",
+              "BA",
+              "CE",
+              "DF",
+              "ES",
+              "GO",
+              "MA",
+              "MT",
+              "MS",
+              "MG",
+              "PA",
+              "PB",
+              "PR",
+              "PE",
+              "PI",
+              "RJ",
+              "RN",
+              "RS",
+              "RO",
+              "RR",
+              "SC",
+              "SP",
+              "SE",
+              "TO"
+            ],
+            "example": "SP"
+          }
+        },
+        "required": [
+          "zipCode",
+          "street",
+          "number",
+          "district",
+          "city",
+          "state"
+        ]
+      },
+      "CreateOrderDto": {
+        "type": "object",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/OrderCustomerDto"
+          },
+          "address": {
+            "$ref": "#/components/schemas/OrderAddressDto"
+          }
+        },
+        "required": [
+          "customer",
+          "address"
+        ]
+      },
+      "OrderSummaryEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "TS-4F2A9C"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "PAID",
+              "CANCELED"
+            ],
+            "type": "string",
+            "example": "PENDING"
+          },
+          "placedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-08-06T12:00:00.000Z"
+          },
+          "canceledAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "itemCount": {
+            "type": "number",
+            "example": 3,
+            "description": "Soma das quantidades."
+          },
+          "totals": {
+            "$ref": "#/components/schemas/OrderTotalsEntity"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "placedAt",
+          "itemCount",
+          "totals"
+        ]
+      },
+      "ResetSummaryEntity": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "number",
+            "example": 6
+          },
+          "users": {
+            "type": "number",
+            "example": 4
+          },
+          "products": {
+            "type": "number",
+            "example": 12
+          }
+        },
+        "required": [
+          "categories",
+          "users",
+          "products"
+        ]
+      }
+    }
+  }
+}

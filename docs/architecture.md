@@ -20,8 +20,10 @@ Eles se comunicam por **contratos explícitos**: a URL da aplicação (`BASE_URL
 atributos `data-testid` expostos pelo frontend; a URL da API e o formato das respostas
 entre frontend e backend. Nenhum import cruzado entre os projetos.
 
-As decisões do backend estão em **[api-architecture.md](api-architecture.md)** (ADR-020 em
-diante) — este documento cobre frontend e automação.
+As decisões do backend estão em **[api-architecture.md](api-architecture.md)** (ADR-020 a
+ADR-048) e as da suíte de automação em
+**[automation-architecture.md](automation-architecture.md)** (ADR-049 em diante) — este
+documento cobre o frontend e as decisões originais de E2E.
 
 ---
 
@@ -214,6 +216,45 @@ e descarte de dados corrompidos vindos do `localStorage`.
 responsabilidade única do `PrivateRoute`. Antes havia duas navegações concorrentes para
 `/login` e a vencedora era imprevisível — origem do item 2.
 
+**Correção posterior — o item 3 estava escrito, não implementado.**
+
+A auditoria da suíte de automação encontrou um cenário E2E que falhava de forma
+intermitente (4 de 4 execuções isoladas, mas verde dentro da suíte completa). A causa não
+era o teste:
+
+`logout()` chamava `setUser(null)` e só depois `await authService.logout()` — e o
+`clearSession()` real morava num `finally` DENTRO dessa chamada, ou seja, **depois** da ida
+e volta de rede. `setUser(null)` muda apenas o estado do React: bastava para a tela
+redirecionar para `/login`, mas o `localStorage` seguia com uma sessão válida durante toda
+a requisição.
+
+Medido com o storage instrumentado:
+
+| Momento | `localStorage` |
+| --- | --- |
+| Antes do logout | `techstore:session` presente |
+| Logo após redirecionar para `/login` | **ainda presente, com a sessão inteira** |
+| ~3 s depois | vazio |
+
+Qualquer navegação nessa janela — F5, um link, fechar e reabrir a aba — restaurava a sessão
+por `GET /auth/me`, com o access token válido por até 15 minutos. O usuário clicava em
+"sair", via a tela de login e continuava autenticado: exatamente o modo de falha que este
+ADR foi escrito para impedir.
+
+A correção move a captura do refresh token para antes da limpeza e torna
+`authService.logout(refreshToken)` uma função sem opinião sobre armazenamento — ela só
+revoga no servidor. A rota é pública (a identidade é o próprio refresh token no corpo), por
+isso funciona com a sessão local já apagada.
+
+Duas lições que valem além deste caso:
+
+1. **Comentário não é garantia.** Os dois arquivos afirmavam a invariante por escrito, e
+   nenhum dos dois a implementava. O comentário envelheceu junto com o código, sem alarme.
+2. **Falha intermitente com causa determinística.** A janela dependia da latência da rede,
+   então o cenário passava na suíte completa e falhava isolado — o padrão que faz um time
+   marcar o teste como *flaky* e perder o defeito. Antes de quarentenar, reproduza no
+   código original: aqui foi isso que separou "teste instável" de "bug real".
+
 ---
 
 ## ADR-013 — Dado e formatação são coisas separadas
@@ -338,6 +379,38 @@ um estado terminal (grade com produtos ou estado vazio). Só a primeira deixaria
 instante em que a grade foi desmontada e ainda não voltou.
 
 Generalizando: **espere pela causa observável, não pelo sintoma transitório.**
+
+**Extensão — a mesma regra vale para MUTAÇÕES, e não valia.**
+
+Encontrado durante a Sprint 3 da automação. Os page objects faziam
+`await locator.click()` e seguiam adiante. `click()` resolve quando o clique é
+**despachado**, não quando a requisição que ele dispara termina — e com o carrinho no
+servidor sob cache otimista (ADR-046), a tela e o badge reagem imediatamente pela via
+local enquanto o `POST /cart/items` ainda está em voo. O `page.goto('/cart')` da linha
+seguinte **abortava** essa requisição, e o item nunca chegava ao servidor.
+
+O sintoma:
+
+| Execução | Resultado |
+| --- | --- |
+| Um cenário isolado | passa |
+| O arquivo de carrinho inteiro | 10 de 15 |
+| A suíte completa | 19 falhas |
+
+Confirmado no log da API: nos cenários vermelhos **não existe `POST /cart/items`** — só os
+dois `GET /cart`. E confirmado no commit anterior, verde na véspera, que passou a falhar
+igual sem nenhuma alteração de código: a janela depende da carga da máquina.
+
+O item chegava ao servidor por sorte, e a sorte acabou quando o ambiente ficou mais lento.
+
+A correção é `BasePage.mutatingCart(action)`, que registra o `waitForResponse` **antes** de
+agir e só devolve o controle quando a resposta chega. Esperar pelo badge não serviria: ele
+sobe pelo redutor local antes de qualquer resposta, então subiria com a requisição ainda em
+voo — é exatamente o "sintoma transitório" contra o qual este ADR foi escrito.
+
+Efeito colateral medido: o arquivo de carrinho caiu de 1,9 min para 1,0 min, porque os
+timeouts de 10 s desapareceram. **Corrigir a corrida deixou a suíte mais rápida, não mais
+lenta** — a espera explícita custa milissegundos, e a implícita custava o timeout inteiro.
 
 ---
 
