@@ -21,6 +21,27 @@ interface ServerState {
   freshDatabase: void
 }
 
+/**
+ * Tokens de acesso emitidos UMA VEZ por worker.
+ *
+ * Repousa num comportamento que a API documenta explicitamente: depois de
+ * `POST /test/reset`, um **access token emitido antes continua valido**, porque os ids do
+ * seed sao fixos e `usr-001` volta a existir com o mesmo id (ADR-028). O `JwtStrategy`
+ * busca o usuario por id a cada requisicao (ADR-033) e o encontra.
+ *
+ * O refresh token, esse SIM morre: a tabela de sessoes e truncada. Por isso
+ * `customerSession` continua sendo por teste — ver abaixo.
+ *
+ * **Limite conhecido, e por que ele nao morde aqui.** O access token vale 900 s. Um worker
+ * que rodasse mais de 15 minutos veria os tokens expirarem no meio. A suite de API leva
+ * ~1,4 min e a de contrato ~30 s; a margem e de uma ordem de grandeza. Se um dia a suite
+ * se aproximar disso, o sintoma sera 401 nos ultimos cenarios — e a correcao e reemitir por
+ * tempo, nao voltar a autenticar por teste.
+ */
+interface WorkerSessions {
+  accessTokens: { customer: string; otherCustomer: string; admin: string }
+}
+
 interface Clients {
   /** Cliente SEM credencial. Prova que uma rota exige autenticacao. */
   api: ApiClient
@@ -42,7 +63,40 @@ interface Services {
   users: UserService
 }
 
-export const test = base.extend<ServerState & Clients & Services>({
+export const test = base.extend<ServerState & Clients & Services, WorkerSessions>({
+  /*
+   * Tres logins por WORKER, no lugar de ate tres por TESTE.
+   *
+   * Medido: a suite de API caiu de 84 s para o valor registrado no ADR-054. O custo estava
+   * concentrado no bcrypt — cada login e um hash proposital e caro, e a suite fazia mais de
+   * cem deles para exercitar 56 cenarios que nao testam login.
+   *
+   * Isto NAO enfraquece o isolamento: o banco continua sendo reiniciado antes de cada
+   * cenario pelo `freshDatabase`. O que passa a ser compartilhado e a CREDENCIAL, que e
+   * imutavel e nao carrega estado de teste.
+   */
+  accessTokens: [
+    async ({ playwright }, use) => {
+      const request = await playwright.request.newContext()
+      const auth = new AuthService(new ApiClient(request))
+
+      const [customer, otherCustomer, admin] = await Promise.all([
+        auth.authenticate(USERS.valid),
+        auth.authenticate(USERS.secondary),
+        auth.authenticate(USERS.admin),
+      ])
+
+      await use({
+        customer: customer.accessToken,
+        otherCustomer: otherCustomer.accessToken,
+        admin: admin.accessToken,
+      })
+
+      await request.dispose()
+    },
+    { scope: 'worker' },
+  ],
+
   /*
    * Estado do servidor, reiniciado antes de CADA teste — mesma decisao da suite E2E
    * (ADR-047), e aqui ela pesa ainda mais: um teste de API cria pedidos e baixa estoque em
@@ -93,29 +147,35 @@ export const test = base.extend<ServerState & Clients & Services>({
     }
   },
 
+  /*
+   * Sessao COMPLETA do cliente padrao, com refresh token — e a unica que ainda paga um
+   * login por teste, de proposito.
+   *
+   * O reset TRUNCA a tabela de sessoes, entao um refresh token emitido por worker estaria
+   * morto no segundo cenario. Os testes que o consomem sao os de rotacao e revogacao, que
+   * precisam de uma linhagem viva e propria — reaproveitar seria justamente o contrario do
+   * que eles verificam.
+   */
   customerSession: async ({ api, freshDatabase }, use) => {
-    void freshDatabase // dependencia explicita: autenticar antes do reset perderia o refresh
+    void freshDatabase // autenticar ANTES do reset perderia o refresh
     const session = await new AuthService(api).authenticate(USERS.valid)
 
     await use({ accessToken: session.accessToken, refreshToken: session.refreshToken })
   },
 
-  asCustomer: async ({ api, customerSession }, use) => {
-    await use(api.withToken(customerSession.accessToken))
+  asCustomer: async ({ api, accessTokens, freshDatabase }, use) => {
+    void freshDatabase
+    await use(api.withToken(accessTokens.customer))
   },
 
-  asOtherCustomer: async ({ api, freshDatabase }, use) => {
+  asOtherCustomer: async ({ api, accessTokens, freshDatabase }, use) => {
     void freshDatabase
-    const session = await new AuthService(api).authenticate(USERS.secondary)
-
-    await use(api.withToken(session.accessToken))
+    await use(api.withToken(accessTokens.otherCustomer))
   },
 
-  asAdmin: async ({ api, freshDatabase }, use) => {
+  asAdmin: async ({ api, accessTokens, freshDatabase }, use) => {
     void freshDatabase
-    const session = await new AuthService(api).authenticate(USERS.admin)
-
-    await use(api.withToken(session.accessToken))
+    await use(api.withToken(accessTokens.admin))
   },
 
   /*
