@@ -65,9 +65,7 @@ test.describe('Listagem de produtos', () => {
   })
 
   test('produto esgotado exibe o selo na grade', async ({ productsPage }) => {
-    const card = productsPage.cards.filter({ hasText: PRODUCTS.outOfStock.name })
-
-    await expect(card.getByTestId('product-out-of-stock')).toBeVisible()
+    await expect(productsPage.outOfStockBadgeFor(PRODUCTS.outOfStock.name)).toBeVisible()
   })
 })
 
@@ -94,7 +92,7 @@ test.describe('Filtros na URL', () => {
     await productsPage.waitForResults()
 
     await expect(productsPage.cards).toHaveCount(PRODUCTS_BY_CATEGORY.Wearables)
-    await expect(page.getByTestId('product-category-filter')).toHaveValue('Wearables')
+    await expect(productsPage.categoryFilter).toHaveValue('Wearables')
   })
 
   test('parâmetro inválido cai no padrão em vez de quebrar', async ({ productsPage }) => {

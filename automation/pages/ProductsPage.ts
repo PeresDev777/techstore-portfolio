@@ -19,6 +19,16 @@ export class ProductsPage extends BasePage {
     return this.byTestId('product-search')
   }
 
+  /** Seletor de categoria. Publico: o spec assevera que o estado sobrevive ao reload. */
+  get categoryFilter(): Locator {
+    return this.byTestId('product-category-filter')
+  }
+
+  /** Selo de esgotado no card de um produto. */
+  outOfStockBadgeFor(name: string): Locator {
+    return this.cards.filter({ hasText: name }).getByTestId('product-out-of-stock')
+  }
+
   /**
    * Abre a listagem já com filtros aplicados.
    *

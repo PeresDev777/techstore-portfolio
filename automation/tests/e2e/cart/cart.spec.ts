@@ -74,18 +74,12 @@ test.describe('Carrinho', () => {
     await expect(cartPage.header.cartCount).toHaveText('2')
   })
 
-  test('não é possível reduzir abaixo de uma unidade', async ({
-    productDetailPage,
-    cartPage,
-    page,
-  }) => {
+  test('não é possível reduzir abaixo de uma unidade', async ({ productDetailPage, cartPage }) => {
     await productDetailPage.openProduct(PRODUCTS.mouse.id)
     await productDetailPage.addToCart()
     await cartPage.open()
 
-    await expect(
-      page.locator(`[data-testid="cart-item"] [data-testid="quantity-decrease"]`),
-    ).toBeDisabled()
+    await expect(cartPage.decreaseButtonFor(PRODUCTS.mouse.id)).toBeDisabled()
   })
 
   test(

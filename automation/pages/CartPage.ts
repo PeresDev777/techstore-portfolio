@@ -28,6 +28,11 @@ export class CartPage extends BasePage {
     return this.page.locator(`[data-testid="cart-item"][data-product-id="${productId}"]`)
   }
 
+  /** Botao de diminuir de uma linha. Exposto porque o spec assevera o estado dele. */
+  decreaseButtonFor(productId: string): Locator {
+    return this.itemRow(productId).getByTestId('quantity-decrease')
+  }
+
   async increaseQuantity(productId: string): Promise<void> {
     await this.mutatingCart(() => this.itemRow(productId).getByTestId('quantity-increase').click())
   }
