@@ -107,3 +107,148 @@ pelo `storageState`: a fixture de reset trunca a tabela de sessões antes de cad
 então o refresh token gravado no estado do navegador já nasce inválido. Sem autenticar
 dentro do teste, o cenário de renovação bem-sucedida seria impossível de montar — a
 renovação precisa ser real para o teste provar alguma coisa.
+
+---
+
+## ADR-051 — Evidência é diferente por tipo de suíte
+
+**Contexto.** O ADR-019 fixou a política de evidências: `screenshot: only-on-failure`,
+`video: retain-on-failure`, `trace: on-first-retry`. Ela foi escrita quando só existia
+suíte de navegador.
+
+**Decisão.** A política do ADR-019 continua valendo para `e2e`. Para `api` e `contract`,
+a moeda de evidência passa a ser o par requisição/resposta com o `x-request-id`, anexado ao
+relatório na falha pela própria fixture do `ApiClient`.
+
+| Suíte | Evidência |
+| --- | --- |
+| E2E | Screenshot, vídeo e trace |
+| API | Método, URL, status, duração, corpo e **`x-request-id`** |
+| Contrato | Erros do AJV com o caminho do campo que divergiu |
+
+**Consequência.** Screenshot e vídeo não existem sem navegador — um teste de API que
+falhasse no CI produziria **zero** evidência sob a política antiga. O `x-request-id` é
+ecoado pela API desde o ADR-031, e essa promessa não tinha consumidor até aqui: agora um
+teste vermelho no CI carrega o id que encontra a linha exata do log com um `grep`.
+
+Isso se pagou antes mesmo de a suíte existir. A primeira execução dos testes de API falhou
+6 de 6, e foi o `resumo-http.txt` anexado que mostrou a URL final sem o prefixo `/api/v1` —
+o `baseURL` do Playwright resolve por `new URL(path, base)` e descartava o caminho. Sem o
+anexo, seriam ciclos de tentativa e erro contra um 404 sem explicação.
+
+**Retry é zero em `api` e `contract`, inclusive no CI.** No E2E o retry compra estabilidade
+contra a rede. Num teste de concorrência, um teste que falha e passa na segunda tentativa é
+exatamente o defeito que se está caçando — o retry transformaria a descoberta em verde.
+
+---
+
+## ADR-052 — Services conhecem a rota; quem assevera é o teste
+
+**Contexto.** A camada de consumo da API podia devolver `data` já desembrulhado e lançar
+exceção em status de erro, como um SDK faria.
+
+**Decisão.** Os services devolvem a resposta **crua** — status, headers, `x-request-id`,
+corpo — e nunca lançam. A asserção mora em `utils/assertions.ts`, sobre o envelope.
+
+**Consequência.** Metade do trabalho de uma suíte de API é verificar 401, 403, 404, 409 e
+422. Um service que só soubesse devolver o caminho feliz obrigaria cada teste negativo a
+contorná-lo, e a camada deixaria de servir justamente aos testes que mais precisam dela.
+
+A exceção é `AuthService.authenticate()`, que **estoura** de propósito: ele prepara estado,
+e uma fixture sem token não tem teste para rodar. A separação está no nome, não em um
+parâmetro booleano — `login()` devolve para ser asseverado, `authenticate()` devolve para
+ser usado.
+
+**O token é imutável.** `withToken()` devolve um cliente novo em vez de mudar o atual. Um
+cliente mutável produziria o pior tipo de teste de autorização: aquele em que a ordem das
+chamadas decide quem está autenticado, e trocar duas linhas muda o resultado sem que o
+código pareça diferente.
+
+**Um efeito colateral que virou teste.** `AuthService.login()` envia **apenas** `email` e
+`password`. Repassar `USERS.valid` inteiro — que carrega `id`, `name` e `role` para os
+testes asseverarem — faz o `forbidNonWhitelisted` responder 422. A proteção contra mass
+assignment do ADR-024 pegou a própria suíte, e o cenário virou teste.
+
+---
+
+## ADR-053 — O recorte da suíte é escolhido pelo gatilho, via npm script
+
+**Contexto.** Rodar a suíte inteira em todo push é simples e caro. Rodar só o smoke é
+barato e deixa passar regressão.
+
+**Decisão.** Três recortes, cada um um `npm script` que qualquer pessoa executa igual na
+própria máquina:
+
+| Gatilho | Script | Cenários | Tempo no CI |
+| --- | --- | --- | --- |
+| `pull_request` | `test:pr` | 44 | ~1m40s |
+| `push` na `main` | `test:regression` | 159 | ~3m20s |
+| `schedule` 03:00 | `test:nightly` | 160 | — |
+
+**Consequência.** O pipeline não tem um comando secreto que só existe no YAML: reproduzir
+a falha do CI é copiar uma linha.
+
+**A justificativa do recorte mudou com a medição.** A análise inicial afirmava que o
+preparo do ambiente dominaria e que o recorte economizaria pouco mais de um minuto.
+Medido: **85 s contra 4,5 min** localmente. A estimativa estava errada — o recorte se paga
+em tempo.
+
+O argumento principal continua sendo outro, e ele não depende de medição: **autoridade do
+gate**. Todo teste no caminho do merge multiplica a chance de vermelho sem relação com a
+mudança, e um gate que erra é um gate que as pessoas aprendem a ignorar.
+
+`@slow` só roda de madrugada porque concorrência é barulhenta por natureza: o cenário
+merece existir e não merece bloquear um merge.
+
+**Uma pilha, três suítes.** Um job por suíte parecia mais limpo e sairia mais caro: cada
+job repetiria `npm ci` de três projetos, migrations, seed e o boot da API. O preparo custa
+tanto quanto os testes; triplicá-lo para paralelizar 4,5 min não se paga nesta escala. Se a
+suíte chegar a 20 min, a conta inverte.
+
+---
+
+## ADR-054 — Credencial tem escopo de worker; sessão tem escopo de teste
+
+**Contexto.** As fixtures autenticavam a cada cenário — até três logins por teste, para
+cliente, segundo cliente e administrador.
+
+**Decisão.** Os **access tokens** são emitidos uma vez por worker. A **sessão completa**
+(com refresh token) continua sendo emitida por teste.
+
+A distinção vem de um comportamento que a API documenta: depois de `POST /test/reset`, um
+access token emitido antes **continua válido**, porque os ids do seed são fixos e `usr-001`
+volta a existir com o mesmo id (ADR-028). O refresh token, esse morre — a tabela de sessões
+é truncada. Os testes de rotação e revogação precisam de uma linhagem viva e própria;
+reaproveitá-la seria o contrário do que eles verificam.
+
+**Consequência.** O isolamento não enfraquece: o banco continua reiniciado antes de cada
+cenário. O que passa a ser compartilhado é a **credencial**, que é imutável e não carrega
+estado de teste.
+
+**O ganho medido foi menor que o previsto, e a medição revelou o gargalo real.**
+
+| | Antes | Depois |
+| --- | --- | --- |
+| Suíte de API (56 cenários) | 84 s | **75 s** |
+
+Onze por cento. A expectativa era muito maior, e investigar a diferença deu o número que
+importa:
+
+```
+POST /test/reset : 1260 ms     ← pago antes de CADA um dos 160 cenários
+POST /auth/login :  283 ms
+```
+
+56 × 1,26 s = 70 s, e a suíte inteira leva 75 s. **O reset é a suíte.** A causa é
+aritmética: o seed executa `bcrypt.hash` para os 4 usuários a cada reinício, e
+4 × 283 ms ≈ 1130 ms dos 1260 ms.
+
+Fica registrado como **limite conhecido**, não como decisão: a correção é do lado da API —
+memoizar o hash por (senha, rounds) no processo, já que a massa é determinística e o próprio
+`seed.runner.ts` documenta que o hash não entra no `update`. No CI o impacto é menor porque
+`BCRYPT_ROUNDS` é 10 em vez de 12.
+
+**Limite da decisão em si.** O access token vale 900 s. Um worker que rodasse mais de 15
+minutos veria os tokens expirarem no meio. As suítes levam ~1,4 min e ~30 s — uma ordem de
+grandeza de margem. O sintoma, se um dia chegar lá, será 401 nos últimos cenários, e a
+correção é reemitir por tempo, não voltar a autenticar por teste.
