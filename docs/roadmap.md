@@ -72,8 +72,8 @@ de reset ter sido construído na Sprint 8.
 
 | Nível | Cenários | Tempo | O que prova |
 | --- | --- | --- | --- |
-| E2E | 82 | ~2,7 min | O que o usuário vê e faz |
-| API | 56 | ~75 s | O que não tem manifestação visual |
+| E2E | 93 | ~2,7 min | O que o usuário vê e faz, incluindo 11 de acessibilidade |
+| API | 56 | ~27 s | O que não tem manifestação visual |
 | Contrato | 21 | ~30 s | A resposta bate com `/api/docs-json` |
 
 Executada em oito sprints:
@@ -87,7 +87,7 @@ Executada em oito sprints:
 | 4 | Contrato com schema derivado da spec e baseline versionada |
 | 5 | Auditoria dos E2E, sessão expirada, refatoração do POM |
 | 6–7 | Recorte da suíte por gatilho, com execução noturna |
-| 8 | Documentação, ADRs e otimização de fixtures |
+| 8 | Documentação, ADRs, performance do seed e acessibilidade |
 
 Decisões em [automation-architecture.md](automation-architecture.md) (ADR-049 a ADR-054).
 A estratégia que as conecta está em [qa-strategy.md](qa-strategy.md).
@@ -104,10 +104,17 @@ A estratégia que as conecta está em [qa-strategy.md](qa-strategy.md).
 Os dois foram reproduzidos no commit verde da véspera antes de qualquer conclusão. Era o
 que separava "flakiness" de bug real.
 
-**Limite conhecido, medido e não corrigido.** `POST /test/reset` custa **1260 ms** e é pago
-antes de cada um dos 160 cenários — o seed executa `bcrypt.hash` para os 4 usuários a cada
-reinício, e 4 × 283 ms explica quase todo o tempo. A correção é do lado da API (memoizar o
-hash por senha e rounds); fica registrada no ADR-054.
+**O gargalo que a medição encontrou.** `POST /test/reset` custava **1260 ms** e era pago
+antes de cada cenário: o seed executava `bcrypt.hash` para os 4 usuários a cada reinício, e
+o hash era **descartado** no caminho do `update`. Memoizado por processo:
+
+| | Antes | Depois |
+| --- | --- | --- |
+| `POST /test/reset` | 1260 ms | 410 ms |
+| Suíte completa | 276 s | **143 s** |
+
+A lição vale mais que o número: a otimização que parecia óbvia — credencial por worker —
+rendeu 11%. O ganho de 67% veio de medir o que sobrou em vez de supor (ADR-054).
 
 ---
 

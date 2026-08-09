@@ -19,7 +19,7 @@ E o filtro aplicado a cada teste novo, antes de escrevê-lo:
 > **O que este teste pega que os outros níveis não pegam?**
 > Se a resposta for "nada", ele não deve existir.
 
-Foi assim que 56 cenários de API entraram sem recobrir os 82 de navegador — e o resultado
+Foi assim que 56 cenários de API entraram sem recobrir os de navegador — e o resultado
 foi verificado depois, na auditoria da Sprint 5: **não há duplicação real entre os níveis.**
 
 ---
@@ -37,7 +37,7 @@ A base é estreita porque a aplicação é pequena — o único domínio com ló
 carrinho, e ele tem 28 testes que rodam em 130 ms sem navegador, sem jsdom e sem framework.
 O ADR-011 registra a decisão.
 
-**O E2E é largo de propósito, e isso não contradiz a pirâmide.** Estes 82 cenários não
+**O E2E é largo de propósito, e isso não contradiz a pirâmide.** Estes cenários não
 testam uma UI com dados de mentira: eles atravessam navegador → React → HTTP → NestJS →
 Prisma → PostgreSQL. São testes de integração de sistema com um navegador na ponta.
 
@@ -152,15 +152,15 @@ liga um teste vermelho no CI à linha exata do log daquela requisição.
 | Gatilho | Recorte | Cenários | Tempo no CI |
 | --- | --- | --- | --- |
 | `pull_request` | `@smoke` + `@critical` | 44 | ~1m40s |
-| `push` na `main` | tudo menos `@slow` | 159 | ~3m20s |
-| `schedule` 03:00 | tudo | 160 | — |
+| `push` na `main` | tudo menos `@slow` | 170 | — |
+| `schedule` 03:00 | tudo | 171 | — |
 
-**Por que o PR não roda tudo.** Medido: 85 s contra 4,5 min localmente. Mas o ganho maior
+**Por que o PR não roda tudo.** Medido: 85 s contra 2,4 min localmente. Mas o ganho maior
 não é tempo — é a **autoridade do gate**. Todo teste no caminho do merge multiplica a chance
 de vermelho sem relação com a mudança, e um gate que erra é um gate que as pessoas aprendem
 a ignorar.
 
-**Regressão não é uma tag.** Marcar os 160 cenários com `@regression` criaria um rótulo que
+**Regressão não é uma tag.** Marcar os 171 cenários com `@regression` criaria um rótulo que
 significa "isto é um teste". Regressão é a **ausência de filtro**.
 
 ---
