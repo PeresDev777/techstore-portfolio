@@ -189,7 +189,7 @@ jobs:
 
       - name: Publicar especificacao OpenAPI
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: openapi-spec
           path: api/openapi.json
@@ -356,7 +356,7 @@ jobs:
       # so existiria nas execucoes verdes, que sao justamente as que nao precisam dele.
       - name: Publicar HTML report
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-${{ github.event_name }}
           path: automation/reports/html
@@ -364,7 +364,7 @@ jobs:
 
       - name: Publicar resultados JUnit
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: junit-results-${{ github.event_name }}
           path: automation/reports/junit
@@ -375,7 +375,7 @@ jobs:
       # `x-request-id` — a moeda de evidencia de quem nao tem navegador.
       - name: Publicar evidencias de falha
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: evidencias-de-falha-${{ github.event_name }}
           path: automation/test-results
