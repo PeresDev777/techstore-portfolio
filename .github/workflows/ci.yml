@@ -5,13 +5,24 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  # TEMPORARIO — validando o gatilho `schedule`, que nunca executou. Volta para
-  # '0 6 * * *' (03:00 em Sao Paulo) assim que a execucao provar o recorte `test:nightly`.
+  # 06:00 UTC = 03:00 em Sao Paulo. O horario e deliberado: a execucao noturna e a UNICA
+  # que roda os cenarios `@slow` (concorrencia), e falhar de madrugada da o dia inteiro
+  # para investigar antes de alguem precisar do resultado.
   #
-  # O horario definitivo e deliberado: a noturna e a UNICA que roda os cenarios `@slow`
-  # (concorrencia), e falhar de madrugada da o dia inteiro para investigar.
+  # VALIDADO em 09/08/2026 com um cron temporario: o job saiu como "noturna completa",
+  # selecionou `test:nightly` e rodou 171 cenarios — um a mais que a regressao, o `@slow`
+  # de concorrencia que so existe neste gatilho.
+  #
+  # Duas coisas aprendidas na validacao, e as duas sao do AGENDADOR, nao do workflow:
+  #
+  # 1. Um cron alterado poucos minutos antes do horario PERDE aquela ocorrencia. A
+  #    primeira tentativa deu 8 minutos de margem e nao disparou; a segunda deu 27 e
+  #    funcionou.
+  # 2. Execucao agendada atrasa. Esta saiu 26 minutos depois do horario — o GitHub
+  #    enfileira `schedule` globalmente e nao promete pontualidade. Por isso 03:00 e uma
+  #    escolha folgada, e nao um compromisso.
   schedule:
-    - cron: '57 18 * * *'
+    - cron: '0 6 * * *'
   # Permite disparar manualmente pela aba Actions.
   workflow_dispatch:
 
