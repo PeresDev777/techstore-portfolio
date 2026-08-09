@@ -34,6 +34,12 @@ test.describe('Listagem de produtos', () => {
 
     const prices = await productsPage.visiblePrices()
 
+    /*
+     * Asseverar o TAMANHO primeiro. `toEqual([...prices].sort())` passa trivialmente para
+     * uma lista vazia — foi por isso que a leitura de uma grade em transicao chegou ate a
+     * assercao seguinte em vez de falhar aqui, com uma mensagem que nao explicava nada.
+     */
+    expect(prices).toHaveLength(CATALOG_SIZE)
     expect(prices).toEqual([...prices].sort((a, b) => a - b))
     expect(prices[0]).toBe(PRODUCTS.mouse.price)
   })
@@ -43,6 +49,12 @@ test.describe('Listagem de produtos', () => {
 
     const prices = await productsPage.visiblePrices()
 
+    /*
+     * Asseverar o TAMANHO primeiro. `toEqual([...prices].sort())` passa trivialmente para
+     * uma lista vazia — foi por isso que a leitura de uma grade em transicao chegou ate a
+     * assercao seguinte em vez de falhar aqui, com uma mensagem que nao explicava nada.
+     */
+    expect(prices).toHaveLength(CATALOG_SIZE)
     expect(prices).toEqual([...prices].sort((a, b) => b - a))
     expect(prices[0]).toBe(PRODUCTS.premiumLaptop.price)
   })
