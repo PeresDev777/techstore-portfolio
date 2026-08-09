@@ -23,7 +23,8 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "format:check": "prettier --check \"**/*.{ts,json}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "contract:baseline": "tsx schemas/update-baseline.ts"
   },
   "lint-staged": {
     "*.ts": [
@@ -47,6 +48,7 @@
     "eslint-plugin-playwright": "^2.2.0",
     "lint-staged": "^17.3.0",
     "prettier": "^3.5.3",
+    "tsx": "^4.23.11",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.33.0"
   }

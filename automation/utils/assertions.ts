@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 
+import { describeErrors, type Contract, type ResponseRef } from '@schemas/contract'
 import type {
   ApiResponse,
   ErrorCode,
@@ -137,4 +138,32 @@ export function expectFasterThan(res: ApiResponse<unknown>, maxMs: number): void
 /** Assevera que a API ecoou o `x-request-id` enviado — a base da correlacao com o log. */
 export function expectRequestIdEcho(res: ApiResponse<unknown>): void {
   expect(res.requestId, 'a API deveria ecoar o x-request-id recebido').not.toBeNull()
+}
+
+/**
+ * Assevera que a resposta bate com o schema que a ESPECIFICACAO declara para a operacao.
+ *
+ * Mora aqui, e nao no arquivo de teste, pelo mesmo motivo dos demais: assercao e camada
+ * compartilhada. Duplicada em cada spec de contrato, a mensagem de falha divergiria — e a
+ * mensagem e metade do valor, porque e o que transforma "o contrato quebrou" em "o campo
+ * `data/price` deveria ser number, x-request-id abc".
+ *
+ * Vale registrar que este e um TERCEIRO tipo de assercao, e nao um sexto asseverador de
+ * envelope: `expectSuccess` e `expectError` verificam o que a API RESPONDEU; este verifica
+ * se ela responde o que PROMETEU. A lista de `assertFunctionNames` do ESLint cresceu por
+ * isso, e nao porque o envelope ganhou um caso especial.
+ */
+export function expectMatchesSpec(
+  contract: Contract,
+  ref: ResponseRef,
+  res: ApiResponse<unknown>,
+): void {
+  const errors = contract.validate(ref, res.body)
+
+  expect(
+    errors,
+    `${ref.method.toUpperCase()} ${ref.path} (${ref.status}) divergiu da especificacao:\n` +
+      `${describeErrors(errors)}\n` +
+      `x-request-id=${res.requestId ?? 'ausente'}`,
+  ).toEqual([])
 }

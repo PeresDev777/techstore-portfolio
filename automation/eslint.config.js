@@ -20,6 +20,17 @@ export default tseslint.config(
        * existe justamente para NAO ser usada. Sem a opcao, a alternativa seria construir o
        * objeto campo a campo, que envelhece a cada campo novo no DTO.
        */
+      /*
+       * O Playwright EXIGE que o primeiro parametro de uma fixture use desestruturacao,
+       * mesmo quando a fixture nao consome nenhuma outra — `async (_args, use)` e recusado
+       * em runtime com "First argument must use the object destructuring pattern".
+       *
+       * A regra padrao proibe `({})`, entao as duas exigencias se contradizem. Esta opcao
+       * existe exatamente para esse caso: continua pegando o padrao vazio em desestruturacao
+       * de variavel, e libera so o de parametro.
+       */
+      'no-empty-pattern': ['error', { allowObjectPatternsAsParameters: true }],
+
       '@typescript-eslint/no-unused-vars': [
         'error',
         { ignoreRestSiblings: true, varsIgnorePattern: '^_', argsIgnorePattern: '^_' },
@@ -64,6 +75,7 @@ export default tseslint.config(
             'expectFieldErrors',
             'expectFasterThan',
             'expectRequestIdEcho',
+            'expectMatchesSpec',
 
             // BasePage
             'expectToBeCurrentPage',

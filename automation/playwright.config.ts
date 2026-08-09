@@ -132,15 +132,20 @@ export default defineConfig({
     /*
      * CONTRATO. Compara a resposta real com a especificacao publicada em `/docs-json`.
      *
-     * Paralelizavel porque nao escreve nada: le a spec e faz requisicoes de leitura. E a
-     * unica das tres suites que nao disputa estado no servidor.
+     * **Serial, corrigindo uma suposicao da Sprint 1.** A configuracao original marcava
+     * este projeto como `fullyParallel`, com a justificativa de que testes de contrato "so
+     * leem". Escreve-los mostrou que nao: validar o schema da resposta de `POST /orders`
+     * exige CRIAR um pedido, e validar o carrinho com itens exige adicionar itens. So a
+     * metade dos cenarios e de leitura.
+     *
+     * Manter o paralelismo obrigaria a separar os dois grupos em projetos diferentes para
+     * ganhar segundos numa suite que roda em menos de um minuto — complexidade que nao se
+     * paga. Fica registrado como evolucao, junto com a do ADR-047.
      */
     {
       name: 'contract',
       testDir: './tests/contract',
       use: { baseURL: ENV.apiUrl },
-      fullyParallel: true,
-      workers: undefined,
       retries: 0,
     },
   ],

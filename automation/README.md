@@ -125,6 +125,8 @@ npm run test:e2e          # só navegador
 npm run test:api          # só HTTP  (não sobe o frontend)
 npm run test:contract     # só contrato
 npm run test:ui           # modo interativo
+
+npm run contract:baseline # regrava a baseline do contrato (com a API no ar)
 ```
 
 O frontend sobe sozinho pelo `webServer` do Playwright — **apenas** quando um projeto de
@@ -194,6 +196,36 @@ linha exata do log daquela requisição.
 **Retry é ZERO na suíte de API, inclusive no CI.** No E2E o retry compra estabilidade
 contra a rede. Num teste de concorrência, um teste que falha e passa na segunda tentativa é
 exatamente o defeito que se está caçando — o retry transformaria a descoberta em verde.
+
+---
+
+## Testes de contrato
+
+```
+/api/docs-json  ──►  conversão 3.0 → JSON Schema  ──►  AJV  ──►  resposta real
+                                                        ▲
+openapi.baseline.json (comitada) ──── diff no git ──────┘
+```
+
+**O schema é derivado, nunca escrito à mão.** Um schema manual é uma segunda fonte de
+verdade — e a Sprint 3 mostrou o preço: os tipos de `services/types.ts` foram deduzidos dos
+DTOs de _entrada_ e erraram quase todo campo de _saída_. Um schema escrito com o mesmo
+cuidado teria os mesmos erros, e um contrato validado contra a crença errada **aprova a API
+errada**.
+
+**Valida a resposta inteira, não só `data`.** Foi o envelope que a API já errou uma vez: o
+ADR-044 registra que as 64 respostas da spec declaravam a forma _sem_ envelope enquanto todo
+runtime vinha _com_. Nenhum teste falhava.
+
+**O ponto cego, e quem o fecha.** Comparar resposta com spec não pega a mudança em que as
+duas andam juntas — alguém remove um campo do DTO, spec e resposta mudam no mesmo commit, o
+teste segue verde. A `openapi.baseline.json` é a terceira fonte, e ela não muda sozinha:
+alterar contrato passa a exigir `npm run contract:baseline`, um diff e alguém que aprove.
+
+**A conversão 3.0 → JSON Schema é própria, não uma biblioteca.** Das nove divergências
+possíveis entre os dialetos, esta spec usa **duas**: `nullable` (4 ocorrências) e `example`
+(117). Trinta linhas não justificam uma dependência cujo custo real não é instalar — é a
+atualização que muda um comportamento sutil onde ninguém revisa.
 
 ---
 
