@@ -169,20 +169,56 @@ do Playwright.
 
 ## Tags
 
-| Tag         | Significado                                       | PR  | Main | Diário |
-| ----------- | ------------------------------------------------- | --- | ---- | ------ |
-| `@smoke`    | O sistema está de pé. 14 cenários (8 E2E + 6 API) | ✅  | ✅   | ✅     |
-| `@critical` | Caminho de receita: 12 cenários (8 E2E + 4 API)   | ✅  | ✅   | ✅     |
-| `@slow`     | Concorrência na última unidade                    | —   | —    | ✅     |
+| Tag         | O que significa                                             | PR  | Main | Noturna |
+| ----------- | ----------------------------------------------------------- | --- | ---- | ------- |
+| `@smoke`    | O sistema está de pé — 14 cenários (8 E2E + 6 API)          | ✅  | ✅   | ✅      |
+| `@critical` | **O que barra um merge** — 33 (8 E2E + 4 API + 21 contrato) | ✅  | ✅   | ✅      |
+| `@slow`     | Concorrência na última unidade — 1                          | —   | —    | ✅      |
 
 ```bash
 npm run test:smoke        # --grep @smoke
-npm run test:pr           # --grep "@smoke|@critical"
-npm run test:regression   # --grep-invert @slow   (tudo, menos o lento)
-npm run test:nightly      # tudo
+npm run test:pr           # --grep "@smoke|@critical"     44 cenários, ~85 s
+npm run test:regression   # --grep-invert @slow          159 cenários, ~4,5 min
+npm run test:nightly      # tudo                         160 cenários
 ```
 
-**Regressão não é uma tag.** Marcar os 79 cenários com `@regression` criaria um rótulo que
+**`@critical` é "o que barra um merge", e não só o caminho de receita.** A suíte de
+contrato inteira entra: uma spec que mente quebra todo cliente gerado a partir dela, e o
+ADR-044 é a prova de que isso já aconteceu sem nenhum teste ficar vermelho. Marcar o
+contrato como crítico foi preferível a inventar uma tag `@contract` — que apenas repetiria
+o nome do projeto e violaria a regra de que **pasta é como roda, tag é quando roda**.
+
+---
+
+## Pipelines
+
+Cada gatilho roda um **script que qualquer pessoa executa igual na própria máquina**. O
+pipeline não tem um comando secreto que só existe no YAML: reproduzir a falha do CI é
+copiar uma linha.
+
+| Gatilho                | Script            | Cenários | Testes   |
+| ---------------------- | ----------------- | -------- | -------- |
+| `pull_request`         | `test:pr`         | 44       | ~85 s    |
+| `push` na `main`       | `test:regression` | 159      | ~4,5 min |
+| `schedule` (03:00 BRT) | `test:nightly`    | 160      | ~4,5 min |
+
+**Por que o PR não roda tudo.** Medido: 85 s contra 4,5 min. Mas o ganho maior não é
+tempo — é a **autoridade do gate**. Todo teste no caminho do merge multiplica a chance de
+vermelho sem relação com a mudança, e um gate que erra é um gate que as pessoas aprendem a
+ignorar.
+
+**Por que `@slow` só roda de madrugada.** Concorrência é barulhenta por natureza: o cenário
+merece existir e não merece bloquear um merge. Falhar às 3h dá o dia inteiro para
+investigar antes de alguém precisar do resultado.
+
+**Uma pilha, três suítes.** A alternativa — um job por suíte — parecia mais limpa e é mais
+cara: cada job repetiria `npm ci` de três projetos, migrations, seed e o boot da API.
+Localmente, os testes levam 4,5 min e o preparo do ambiente leva o mesmo tanto; triplicar o
+preparo para paralelizar 4,5 min de teste não se paga nesta escala.
+
+---
+
+**Regressão não é uma tag.** Marcar os 160 cenários com `@regression` criaria um rótulo que
 significa "isto é um teste" — ruído puro. Regressão é a **ausência de filtro**; as tags
 existem para recortes _menores_ que o todo.
 

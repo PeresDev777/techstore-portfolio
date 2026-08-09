@@ -21,7 +21,7 @@ import { expectMatchesSpec } from '@utils/assertions'
  * Automation".
  */
 
-test.describe('Contrato — respostas de sucesso', () => {
+test.describe('Contrato — respostas de sucesso', { tag: '@critical' }, () => {
   test('catalogo paginado', async ({ contract, products }) => {
     const response = await products.list({ page: 1, limit: 5 })
 
@@ -159,7 +159,7 @@ test.describe('Contrato — respostas de sucesso', () => {
   })
 })
 
-test.describe('Contrato — respostas de erro', () => {
+test.describe('Contrato — respostas de erro', { tag: '@critical' }, () => {
   /*
    * O envelope de erro tem forma propria — `code` e `errors[]` no lugar de `data` — e um
    * cliente decide COMPORTAMENTO por ele (ADR-023). Uma spec que descrevesse o erro errado

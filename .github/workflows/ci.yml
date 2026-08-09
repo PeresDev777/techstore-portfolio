@@ -5,20 +5,29 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # 06:00 UTC = 03:00 em Sao Paulo. O horario e deliberado: a execucao noturna e a UNICA
+  # que roda os cenarios `@slow` (concorrencia), e falhar de madrugada da o dia inteiro
+  # para investigar antes de alguem precisar do resultado.
+  schedule:
+    - cron: '0 6 * * *'
   # Permite disparar manualmente pela aba Actions.
   workflow_dispatch:
 
 # Um push novo na mesma branch cancela a execucao anterior: nao ha valor em
 # terminar o CI de um commit que ja foi substituido.
+#
+# `schedule` fica FORA do agrupamento por ref: a execucao noturna e da main, e cancelar a
+# de ontem porque a de hoje comecou seria correto — mas cancelar a noturna porque alguem
+# fez um push na main nao seria.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
   NODE_VERSION: '22'
 
 jobs:
-  # Job rapido e barato. Roda em paralelo com o E2E para dar retorno em segundos,
+  # Job rapido e barato. Roda em paralelo com os demais para dar retorno em segundos,
   # em vez de esperar o browser subir para descobrir um erro de tipo.
   quality:
     name: Lint, tipos e testes unitarios
@@ -186,14 +195,17 @@ jobs:
           path: api/openapi.json
           retention-days: 14
 
-  e2e:
-    name: Testes E2E (Playwright + API real)
+  test:
+    name: Suite de testes (${{ github.event_name == 'pull_request' && 'gate de PR' || github.event_name == 'schedule' && 'noturna completa' || 'regressao' }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
-    # A suite deixou de rodar contra dados mockados: o frontend consome a API, que consome
-    # o Postgres. O job precisa subir a pilha inteira — e e justamente isso que torna o
-    # teste E2E um teste de INTEGRACAO de verdade, e nao da UI isolada.
+    # A pilha inteira sobe UMA vez e as tres suites rodam sobre ela.
+    #
+    # A alternativa — um job por suite — parecia mais limpa e e mais cara: cada job
+    # repetiria `npm ci` de tres projetos, migrations, seed e o boot da API. Medido
+    # localmente, os testes levam 4,5 min e o preparo do ambiente leva o mesmo tanto;
+    # triplicar o preparo para paralelizar 4,5 min de teste nao se paga nesta escala.
     services:
       postgres:
         image: postgres:16-alpine
@@ -239,6 +251,30 @@ jobs:
             frontend/package-lock.json
             automation/package-lock.json
 
+      # O recorte da suite e escolhido pelo GATILHO, e cada opcao e um script que qualquer
+      # pessoa roda igual na propria maquina. E o ponto: o pipeline nao tem um comando
+      # secreto que so existe no YAML — reproduzir a falha do CI e copiar uma linha.
+      #
+      #   pull_request  test:pr          @smoke + @critical (43 cenarios, ~55 s)
+      #   push (main)   test:regression  tudo menos @slow  (159 cenarios, ~4,5 min)
+      #   schedule      test:nightly     tudo, inclusive @slow
+      #
+      # Por que o PR nao roda tudo: medido, o recorte leva 55 s contra 4,5 min. Mas o
+      # ganho maior nao e tempo — e a AUTORIDADE do gate. Todo teste no caminho do merge
+      # multiplica a chance de vermelho sem relacao com a mudanca, e um gate que erra e um
+      # gate que as pessoas aprendem a ignorar.
+      #
+      # `@slow` fica so na noturna porque concorrencia e barulhenta por natureza: ela
+      # merece existir, e nao merece bloquear um merge.
+      - name: Selecionar o recorte da suite
+        id: suite
+        run: |
+          case "${{ github.event_name }}" in
+            pull_request) echo "script=test:pr" >> "$GITHUB_OUTPUT" ;;
+            schedule)     echo "script=test:nightly" >> "$GITHUB_OUTPUT" ;;
+            *)            echo "script=test:regression" >> "$GITHUB_OUTPUT" ;;
+          esac
+
       - name: Instalar dependencias do frontend
         working-directory: frontend
         run: npm ci
@@ -276,41 +312,45 @@ jobs:
         working-directory: automation
         run: npx playwright install-deps chromium
 
-      # O `webServer` do Playwright roda `npm run preview` quando CI=true.
-      # O build precisa existir antes: construir aqui deixa a falha de build separada
-      # da falha de teste, em vez de mascarada dentro do log do webServer.
       - name: Preparar o banco
         working-directory: api
         run: |
           npm run prisma:deploy
           npm run db:seed
 
+      # A API guarda o log em arquivo para que o passo de diagnostico consiga recupera-lo.
+      # Sem isso, um teste vermelho no CI perde justamente a informacao que o `x-request-id`
+      # da suite existe para correlacionar.
       - name: Subir a API
         working-directory: api
         run: |
           npm run build
-          node dist/main.js & echo $! > /tmp/api.pid
+          node dist/main.js > /tmp/api.log 2>&1 & echo $! > /tmp/api.pid
           # Espera a PRONTIDAO real (banco conectado), nao apenas a porta abrir. Sem isso,
           # o primeiro teste bate numa API que ainda esta inicializando.
           for i in $(seq 1 30); do
             curl -sf http://localhost:3000/api/health/ready > /dev/null && exit 0
             sleep 1
           done
-          echo "API nao ficou pronta"; exit 1
+          echo "API nao ficou pronta"; cat /tmp/api.log; exit 1
 
-      # O build embute VITE_API_URL: precisa acontecer DEPOIS de a variavel existir e
-      # ANTES do preview que a suite consome.
+      # O `webServer` do Playwright roda `npm run preview` quando CI=true.
+      # O build precisa existir antes: construir aqui deixa a falha de build separada
+      # da falha de teste, em vez de mascarada dentro do log do webServer.
+      #
+      # Embute VITE_API_URL: precisa acontecer DEPOIS de a variavel existir e ANTES do
+      # preview que a suite consome.
       - name: Build da aplicacao
         working-directory: frontend
         run: npm run build
 
       - name: Executar a suite
         working-directory: automation
-        run: npm test
+        run: npm run ${{ steps.suite.outputs.script }}
 
       - name: Log da API em caso de falha
         if: failure()
-        run: tail -100 /tmp/api.log || true
+        run: tail -200 /tmp/api.log || true
 
       # `always()`: o relatorio e MAIS util quando a suite falha. Sem isso, o artifact
       # so existiria nas execucoes verdes, que sao justamente as que nao precisam dele.
@@ -318,7 +358,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ github.event_name }}
           path: automation/reports/html
           retention-days: 14
 
@@ -326,15 +366,17 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: junit-results
+          name: junit-results-${{ github.event_name }}
           path: automation/reports/junit
           retention-days: 14
 
-      # Traces, videos e screenshots so existem quando algo falhou.
+      # Traces, videos e screenshots so existem quando algo falhou. Para os cenarios de
+      # API e contrato, o que vem aqui e o registro requisicao/resposta com o
+      # `x-request-id` — a moeda de evidencia de quem nao tem navegador.
       - name: Publicar evidencias de falha
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: evidencias-de-falha
+          name: evidencias-de-falha-${{ github.event_name }}
           path: automation/test-results
           retention-days: 14

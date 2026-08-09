@@ -17,7 +17,7 @@ import { Contract } from '@schemas/contract'
  * Quando este teste falhar de forma legitima — uma rota nova, um campo novo — a correcao e
  * regravar a baseline **no mesmo PR** que muda a API. O diff e a revisao.
  */
-test.describe('Contrato — deriva contra a baseline', () => {
+test.describe('Contrato — deriva contra a baseline', { tag: '@critical' }, () => {
   test('nenhuma rota apareceu ou sumiu sem registro', async ({ contract }) => {
     const baseline = Contract.fromBaseline()
 
