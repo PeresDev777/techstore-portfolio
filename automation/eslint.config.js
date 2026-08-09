@@ -76,6 +76,7 @@ export default tseslint.config(
             'expectFasterThan',
             'expectRequestIdEcho',
             'expectMatchesSpec',
+            'expectNoViolations',
 
             /*
              * Page Objects — apenas os INVARIANTES que sobreviveram a refatoracao da

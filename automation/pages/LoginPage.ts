@@ -8,7 +8,8 @@ export class LoginPage extends BasePage {
   protected readonly path = ROUTES.login
   protected readonly readyLocator: Locator = this.byTestId('login-form')
 
-  private get emailInput(): Locator {
+  /** Publico: o teste de navegacao por teclado precisa dar foco no primeiro campo. */
+  get emailInput(): Locator {
     return this.byTestId('login-email')
   }
 

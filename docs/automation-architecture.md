@@ -263,3 +263,47 @@ quebrado.
 minutos veria os tokens expirarem no meio. As suítes levam ~1,4 min e ~30 s — uma ordem de
 grandeza de margem. O sintoma, se um dia chegar lá, será 401 nos últimos cenários, e a
 correção é reemitir por tempo, não voltar a autenticar por teste.
+
+
+---
+
+## ADR-055 — Acessibilidade verificada por axe, com alvo ZERO
+
+**Contexto.** A suíte não tinha nenhuma verificação de acessibilidade. Era a única lacuna
+sem justificativa técnica — só falta de tempo.
+
+**Decisão.** `@axe-core/playwright` sobre 11 estados de tela, asseverando **zero
+violações** de WCAG 2.1 A e AA.
+
+**Por que uma dependência nova se justifica.** WCAG tem dezenas de critérios verificáveis
+por máquina — contraste, rótulo de campo, ordem de cabeçalho, `alt`, papel ARIA. Escrever
+isso à mão seria reimplementar o `axe-core`, que é o mesmo motor do Lighthouse. Não há
+versão caseira defensável.
+
+**A sondagem veio antes da decisão.** Rodar o axe primeiro, em cinco telas, mostrou **uma
+única classe de problema**: contraste em dois tokens de cor. Como o número era corrigível,
+os tokens foram ajustados e o alvo virou zero — posição muito mais forte que congelar as
+violações numa baseline, que é o que se faz quando a dívida é grande demais para pagar.
+
+**A correção de contraste ensinou algo que vale registrar.** Os valores foram **calculados**
+a partir do OKLCH, não estimados: `ink-400` dava 3,64:1 e `success-600` dava 4,28:1 sobre
+branco. A primeira tentativa escolheu `L=0.56`, que passa sobre branco (4,66:1) e **reprova
+sobre `surface-muted`** (4,40:1) — e o axe pegou. **Contraste depende do PAR, nunca da cor
+sozinha**, e o alvo correto é o fundo mais escuro em que aquele texto aparece. Valor final:
+`L=0.53`, com 5,28:1 sobre branco e 4,99:1 sobre muted.
+
+**O que este teste NÃO prova, dito no próprio arquivo.** Verificação automática alcança
+cerca de um terço dos critérios de WCAG. Ela não diz se a ordem de tabulação faz sentido,
+se o `alt` **descreve** a imagem, ou se o fluxo é navegável por leitor de tela. Zero
+violações significa "nenhum defeito mecânico", não "acessível" — chamar isso de acessível
+seria o mesmo erro de chamar cobertura de linha de "testado".
+
+Por isso existe um cenário que o axe não alcança: o login operado **só pelo teclado**, do
+foco ao `Enter`. A verificação automática confere se os elementos são focáveis; ela não
+confere se a ordem leva a algum lugar.
+
+**Sem tag, de propósito.** Os cenários rodam na regressão e na noturna, não no gate de PR.
+Acessibilidade acabou de chegar a zero e ainda não tem histórico de estabilidade; promovê-la
+a `@critical` é o passo natural depois de algumas dezenas de execuções verdes. Barrar merge
+com um gate que nunca provou sua taxa de falso positivo é como o ADR-053 descreve — o
+caminho para um gate que as pessoas aprendem a ignorar.

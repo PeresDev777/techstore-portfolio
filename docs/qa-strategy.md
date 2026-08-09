@@ -29,9 +29,9 @@ foi verificado depois, na auditoria da Sprint 5: **não há duplicação real en
 | Nível | Onde | Cenários | Tempo | O que prova |
 | --- | --- | --- | --- | --- |
 | Unitário | `frontend/` | 28 | ~130 ms | Regras puras do redutor do carrinho |
-| **API** | `automation/tests/api` | 56 | ~75 s | O que não tem manifestação visual |
+| **API** | `automation/tests/api` | 56 | ~27 s | O que não tem manifestação visual |
 | **Contrato** | `automation/tests/contract` | 21 | ~30 s | A resposta bate com a especificação |
-| **E2E** | `automation/tests/e2e` | 82 | ~2,7 min | O que o usuário vê e faz |
+| **E2E** | `automation/tests/e2e` | 93 | ~2,7 min | O que o usuário vê e faz, incluindo 11 de acessibilidade |
 
 A base é estreita porque a aplicação é pequena — o único domínio com lógica pura densa é o
 carrinho, e ele tem 28 testes que rodam em 130 ms sem navegador, sem jsdom e sem framework.
@@ -171,7 +171,7 @@ significa "isto é um teste". Regressão é a **ausência de filtro**.
 | --- | --- |
 | Firefox e WebKit | Ativar antes de a suíte estar estável em Chromium multiplica manutenção sem ganho de cobertura |
 | Responsividade / mobile | Mesma razão; o projeto de mobile viewport está declarado e comentado na config |
-| Acessibilidade (axe) | Vale a pena e não foi feito. Fica registrado como lacuna conhecida, não como decisão |
+| Leitor de tela / ordem de tabulação completa | O axe cobre ~1/3 dos critérios de WCAG. O resto exige verificação manual — lacuna conhecida |
 | Carga e performance | Fora do escopo. `expectFasterThan` existe para pegar regressão grosseira, não para medir |
 | Gateway de pagamento | Não existe no sistema; `POST /orders/:id/pay` é simulação declarada (ADR-040) |
 | Histórico de pedidos no navegador | **A tela não existe.** Coberto por API. Construir a tela é uma decisão de produto em aberto |
