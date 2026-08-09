@@ -4,13 +4,14 @@ Framework de testes da TechStore em **Playwright + TypeScript**. Cobre a aplica�
 três caminhos diferentes: pelo **navegador** (E2E), por **HTTP** (API) e contra a
 **especificação OpenAPI** (contrato).
 
-| Documento                                                        | Conteudo                                     |
-| ---------------------------------------------------------------- | -------------------------------------------- |
-| [../docs/architecture.md](../docs/architecture.md)               | ADR-001 a ADR-019 — frontend e automação     |
-| [../docs/api-architecture.md](../docs/api-architecture.md)       | ADR-020 a ADR-048 — API                      |
-| [../api/README.md](../api/README.md)                             | Rotas, contrato de resposta, códigos de erro |
-| [../docs/authentication-flow.md](../docs/authentication-flow.md) | Fluxo de sessão                              |
-| [../docs/conventions.md](../docs/conventions.md)                 | Convenções de código e commits               |
+| Documento                                                                | Conteudo                                     |
+| ------------------------------------------------------------------------ | -------------------------------------------- |
+| [../docs/architecture.md](../docs/architecture.md)                       | ADR-001 a ADR-019 — frontend e automação     |
+| [../docs/api-architecture.md](../docs/api-architecture.md)               | ADR-020 a ADR-048 — API                      |
+| [../docs/automation-architecture.md](../docs/automation-architecture.md) | ADR-049 em diante — esta suíte               |
+| [../api/README.md](../api/README.md)                                     | Rotas, contrato de resposta, códigos de erro |
+| [../docs/authentication-flow.md](../docs/authentication-flow.md)         | Fluxo de sessão                              |
+| [../docs/conventions.md](../docs/conventions.md)                         | Convenções de código e commits               |
 
 ---
 
@@ -93,6 +94,33 @@ devolve para ser usado.
 O token é **imutável**: `withToken()` devolve um cliente novo. Um cliente mutável produziria
 o pior tipo de teste de autorização — aquele em que a ordem das chamadas decide quem está
 autenticado, e trocar duas linhas muda o resultado sem que o código pareça diferente.
+
+### Page Objects
+
+**Asserção que expressa a expectativa de um teste mora no spec. Invariante mora no page
+object.** É a regra do ADR-049, e ela substitui a do ADR-017.
+
+```ts
+// o page object expõe o Locator; o spec declara o que espera
+await expect(productsPage.cards).toHaveCount(CATALOG_SIZE)
+
+// invariante da página — vale em qualquer estado, para qualquer massa
+await cartPage.expectTotalsAreConsistent() // total = subtotal + frete
+```
+
+Sobraram **7 métodos de asserção** onde havia 28.
+
+**Expor `Locator` não é expor seletor.** A string fica dentro do page object; o spec recebe
+um objeto já resolvido. Isso importa por um motivo mecânico: os matchers do Playwright sobre
+`Locator` **reexecutam até estabilizar**, enquanto um leitor (`isDisabled()`) faz uma leitura
+única. Trocar asserções por leitores em nome da pureza introduziria flakiness.
+
+**Formato de apresentação é conhecimento da página.** `displayedProduct()` devolve o que a
+tela mostra; `ProductDetailPage.expected(produto)` devolve a forma esperada, com preço
+formatado e nota com vírgula decimal. O spec decide **qual** produto espera; a página sabe
+**como** apresenta.
+
+---
 
 **Pasta é COMO o teste roda; tag é QUANDO ele roda.** `e2e`, `api` e `contract` são pastas
 porque têm runtime diferente — uma precisa de navegador e `storageState`, outra só de
@@ -256,7 +284,8 @@ de verdade, e ela diverge da primeira no dia em que é escrita.
    de navegação, hidratação ou de duas telas conversando, é E2E.
 2. **Não recubra o nível de baixo.** Antes de escrever, pergunte o que este teste pega que
    os outros não pegam. Se a resposta for "nada", ele não deve existir.
-3. **E2E:** se precisar de um seletor cru, falta um método no Page Object.
+3. **E2E:** a asserção vai no spec; o page object expõe o `Locator` ou uma ação. Se
+   precisar escrever `getByTestId` no spec, falta uma propriedade no page object.
 4. **API:** consuma pelos `services/`, nunca `request.post` solto no spec.
 5. **Marque com tag** só se o cenário for smoke, crítico ou lento. Sem tag é o padrão.
 6. **Asserção por `code`, nunca por mensagem** — copy muda, código não.

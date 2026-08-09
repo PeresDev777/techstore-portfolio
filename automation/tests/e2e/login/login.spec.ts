@@ -20,22 +20,22 @@ test.describe('Login', () => {
       await loginPage.loginAs(USERS.valid)
 
       await dashboardPage.expectToBeCurrentPage()
-      await dashboardPage.expectGreeting(USERS.valid.name)
-      await dashboardPage.header.expectLoggedInAs(USERS.valid.name)
+      await expect(dashboardPage.greeting).toContainText(USERS.valid.name)
+      await expect(dashboardPage.header.userName).toHaveText(USERS.valid.name)
     },
   )
 
   test('e-mail inexistente é recusado', async ({ loginPage, page }) => {
     await loginPage.submitCredentials(USERS.unknown.email, USERS.unknown.password)
 
-    await loginPage.expectFormError(AUTH_MESSAGES.invalidCredentials)
+    await expect(loginPage.formError).toHaveText(AUTH_MESSAGES.invalidCredentials)
     await expect(page).toHaveURL(new RegExp(ROUTES.login))
   })
 
   test('senha incorreta é recusada', async ({ loginPage, page }) => {
     await loginPage.submitCredentials(USERS.valid.email, WRONG_PASSWORD)
 
-    await loginPage.expectFormError(AUTH_MESSAGES.invalidCredentials)
+    await expect(loginPage.formError).toHaveText(AUTH_MESSAGES.invalidCredentials)
     await expect(page).toHaveURL(new RegExp(ROUTES.login))
   })
 
@@ -45,23 +45,23 @@ test.describe('Login', () => {
      * atacante descobrir quais e-mails estão cadastrados testando um por um.
      */
     await loginPage.submitCredentials(USERS.unknown.email, USERS.unknown.password)
-    await loginPage.expectFormError(AUTH_MESSAGES.invalidCredentials)
+    await expect(loginPage.formError).toHaveText(AUTH_MESSAGES.invalidCredentials)
 
     await loginPage.submitCredentials(USERS.valid.email, WRONG_PASSWORD)
-    await loginPage.expectFormError(AUTH_MESSAGES.invalidCredentials)
+    await expect(loginPage.formError).toHaveText(AUTH_MESSAGES.invalidCredentials)
   })
 
   test('conta desativada recebe mensagem específica', async ({ loginPage }) => {
     await loginPage.loginAsExpectingFailure(USERS.disabled)
 
-    await loginPage.expectFormError(AUTH_MESSAGES.accountDisabled)
+    await expect(loginPage.formError).toHaveText(AUTH_MESSAGES.accountDisabled)
   })
 
   test('campos obrigatórios bloqueiam o envio', async ({ loginPage, page }) => {
     await loginPage.submitEmpty()
 
-    await loginPage.expectFieldError('email', AUTH_MESSAGES.requiredEmail)
-    await loginPage.expectFieldError('password', AUTH_MESSAGES.requiredPassword)
+    await expect(loginPage.fieldError('email')).toHaveText(AUTH_MESSAGES.requiredEmail)
+    await expect(loginPage.fieldError('password')).toHaveText(AUTH_MESSAGES.requiredPassword)
     await expect(page).toHaveURL(new RegExp(ROUTES.login))
   })
 
@@ -70,16 +70,16 @@ test.describe('Login', () => {
   }) => {
     await loginPage.submitCredentials('email-sem-arroba', USERS.valid.password)
 
-    await loginPage.expectFieldError('email', AUTH_MESSAGES.invalidEmail)
+    await expect(loginPage.fieldError('email')).toHaveText(AUTH_MESSAGES.invalidEmail)
   })
 
   test('erro do campo desaparece ao corrigir', async ({ loginPage }) => {
     await loginPage.submitEmpty()
-    await loginPage.expectFieldError('email', AUTH_MESSAGES.requiredEmail)
+    await expect(loginPage.fieldError('email')).toHaveText(AUTH_MESSAGES.requiredEmail)
 
     await loginPage.fillEmail(USERS.valid.email)
 
-    await loginPage.expectNoFieldError('email')
+    await expect(loginPage.fieldError('email')).toBeHidden()
   })
 
   test(
@@ -105,6 +105,6 @@ test.describe('Login', () => {
 
     await page.reload()
 
-    await dashboardPage.expectGreeting(USERS.valid.name)
+    await expect(dashboardPage.greeting).toContainText(USERS.valid.name)
   })
 })

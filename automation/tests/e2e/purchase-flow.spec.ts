@@ -2,6 +2,7 @@ import { CUSTOMER, EXPECTED_MASKS } from '@data/customers'
 import { PRODUCTS, SEARCH_TERMS, SHIPPING } from '@data/products'
 import { USERS } from '@data/users'
 import { expect, test } from '@fixtures/anonymous'
+import { ProductDetailPage } from '@pages/ProductDetailPage'
 
 /**
  * Jornada completa do cliente.
@@ -31,8 +32,8 @@ test(
       await loginPage.open()
       await loginPage.loginAs(USERS.valid)
 
-      await dashboardPage.expectGreeting(USERS.valid.name)
-      await dashboardPage.header.expectCartCount(0)
+      await expect(dashboardPage.greeting).toContainText(USERS.valid.name)
+      await expect(dashboardPage.header.cartCount).toBeHidden()
     })
 
     await test.step('pesquisa o produto desejado', async () => {
@@ -40,28 +41,30 @@ test(
       await productsPage.waitForResults()
 
       await productsPage.search(SEARCH_TERMS.single.term)
-      await productsPage.expectResultCount(SEARCH_TERMS.single.expectedCount)
+      await expect(productsPage.cards).toHaveCount(SEARCH_TERMS.single.expectedCount)
     })
 
     await test.step('abre o produto e confere os dados', async () => {
       await productsPage.openProduct(PRODUCTS.keyboard.name)
 
       await productDetailPage.waitUntilReady()
-      await productDetailPage.expectProductDetails(PRODUCTS.keyboard)
+      expect(await productDetailPage.displayedProduct()).toMatchObject(
+        ProductDetailPage.expected(PRODUCTS.keyboard),
+      )
       await productDetailPage.expectImageLoaded()
     })
 
     await test.step('adiciona ao carrinho', async () => {
       await productDetailPage.addToCart()
 
-      await productDetailPage.header.expectCartCount(1)
+      await expect(productDetailPage.header.cartCount).toHaveText('1')
     })
 
     await test.step('confere o carrinho', async () => {
       await productDetailPage.header.goToCart()
       await cartPage.waitUntilReady()
 
-      await cartPage.expectLineCount(1)
+      await expect(cartPage.items).toHaveCount(1)
       expect(await cartPage.subtotalInCents()).toBe(PRODUCTS.keyboard.price)
       expect(await cartPage.shippingInCents()).toBe(0) // acima do limite de frete grátis
       expect(await cartPage.totalInCents()).toBe(PRODUCTS.keyboard.price)
@@ -88,7 +91,7 @@ test(
       expect(await orderSuccessPage.totalInCents()).toBe(PRODUCTS.keyboard.price)
 
       // Carrinho zerado é a prova de que o pedido foi de fato consumido.
-      await orderSuccessPage.header.expectCartCount(0)
+      await expect(orderSuccessPage.header.cartCount).toBeHidden()
 
       await orderSuccessPage.attachScreenshot('compra-concluida')
     })
@@ -97,7 +100,7 @@ test(
       await orderSuccessPage.continueShopping()
 
       await productsPage.waitForResults()
-      await productsPage.header.expectCartCount(0)
+      await expect(productsPage.header.cartCount).toBeHidden()
     })
 
     // Frete grátis foi aplicado porque o teclado custa acima do limite.

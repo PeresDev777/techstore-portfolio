@@ -77,39 +77,20 @@ export default tseslint.config(
             'expectRequestIdEcho',
             'expectMatchesSpec',
 
-            // BasePage
+            /*
+             * Page Objects — apenas os INVARIANTES que sobreviveram a refatoracao da
+             * Sprint 5 (ADR-049). Eram 22 nomes; sao 4.
+             *
+             * A lista encolheu porque a regra mudou: assercao que expressa a expectativa de
+             * UM TESTE mora no spec, e o page object expoe o locator. O que fica aqui sao
+             * relacoes verdadeiras em qualquer estado da pagina — prontidao, identidade da
+             * rota, e as duas identidades contabeis do carrinho.
+             */
             'expectToBeCurrentPage',
             'waitUntilReady',
-            // HeaderComponent
-            'expectCartCount',
-            'expectLoggedInAs',
-            // LoginPage
-            'expectFormError',
-            'expectFieldError',
-            'expectNoFieldError',
-            'expectSubmitting',
-            // DashboardPage
-            'expectGreeting',
-            // ProductsPage
-            'expectResultCount',
-            'expectEmptyState',
-            // ProductDetailPage
-            'expectProductDetails',
-            'expectImageLoaded',
-            'expectOutOfStock',
-            'expectAddButtonDisabled',
-            'expectAddButtonHidden',
-            'expectIncreaseDisabled',
-            // CartPage
-            'expectEmpty',
-            'expectLineCount',
             'expectTotalsAreConsistent',
             'expectSubtotalMatchesLines',
-            // CheckoutPage
-            'expectMaskedValue',
-            'expectPrefilledFrom',
-            'expectSummaryItemCount',
-            // OrderSuccessPage
+            'expectImageLoaded',
             'expectOrderNumberFormat',
             'expectOrderMatches',
           ],

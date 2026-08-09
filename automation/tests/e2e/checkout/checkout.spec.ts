@@ -15,7 +15,7 @@ test.describe('Checkout — finalização', () => {
 
     await checkoutPage.open()
 
-    await checkoutPage.expectSummaryItemCount(2)
+    await expect(checkoutPage.summaryItems).toHaveCount(2)
     expect(await checkoutPage.summarySubtotalInCents()).toBe(
       PRODUCTS.mouse.price + PRODUCTS.headphone.price,
     )
@@ -71,7 +71,7 @@ test.describe('Checkout — finalização', () => {
       await checkoutPage.placeOrder(CUSTOMER)
 
       await orderSuccessPage.waitUntilReady()
-      await orderSuccessPage.header.expectCartCount(0)
+      await expect(orderSuccessPage.header.cartCount).toBeHidden()
     },
   )
 

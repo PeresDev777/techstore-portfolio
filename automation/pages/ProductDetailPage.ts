@@ -28,8 +28,13 @@ export class ProductDetailPage extends BasePage {
    * `product-detail-add-to-cart` e não `add-to-cart`: os produtos relacionados no fim da
    * página também expõem `add-to-cart`, e um locator ambíguo quebraria em strict mode.
    */
-  private get addButton(): Locator {
+  get addButton(): Locator {
     return this.byTestId('product-detail-add-to-cart')
+  }
+
+  /** Botao de aumentar a quantidade A COMPRAR — local, nao toca no servidor. */
+  get increaseButton(): Locator {
+    return this.byTestId('quantity-increase')
   }
 
   async openProduct(productId: string): Promise<void> {
@@ -70,30 +75,44 @@ export class ProductDetailPage extends BasePage {
     await this.addToCart()
   }
 
-  async expectAddButtonDisabled(): Promise<void> {
-    await expect(this.addButton).toBeDisabled()
-  }
-
-  async expectAddButtonHidden(): Promise<void> {
-    await expect(this.addButton).toBeHidden()
-  }
-
-  async expectIncreaseDisabled(): Promise<void> {
-    await expect(this.byTestId('quantity-increase')).toBeDisabled()
+  /**
+   * Dados exibidos na tela, ja normalizados para comparacao.
+   *
+   * LEITOR e nao asseverador: a expectativa e do teste, entao quem compara e o spec. O
+   * preco sai em centavos porque a pagina expoe `data-price-cents` (ADR-008) — comparar
+   * numero em vez de `"R$ 1.299,90"` deixa o teste imune a formatacao e a locale.
+   */
+  async displayedProduct(): Promise<{
+    name: string
+    priceInCents: number
+    priceLabel: string
+    category: string
+    rating: string
+  }> {
+    return {
+      name: (await this.name.textContent()) ?? '',
+      priceInCents: await readCents(this.price),
+      priceLabel: (await this.price.textContent()) ?? '',
+      category: (await this.category.textContent()) ?? '',
+      rating: (await this.rating.textContent()) ?? '',
+    }
   }
 
   /**
-   * Confere os dados exibidos contra a massa de teste.
+   * Forma esperada de `displayedProduct` para um produto da massa.
    *
-   * Um único método em vez de cinco asserções repetidas em cada spec: quando um campo
-   * novo entrar na página, há um só lugar para atualizar.
+   * Mora no page object porque descreve como a PAGINA apresenta o dado — a nota sai com
+   * virgula decimal em pt-BR, o preco sai formatado. E conhecimento da tela, nao do teste.
+   * O que o spec decide e QUAL produto espera; o formato e responsabilidade daqui.
    */
-  async expectProductDetails(product: TestProduct): Promise<void> {
-    await expect(this.name).toHaveText(product.name)
-    await expect(this.price).toHaveText(formatCents(product.price))
-    await expect(this.category).toHaveText(product.category)
-    await expect(this.rating).toContainText(product.rating.toString().replace('.', ','))
-    expect(await readCents(this.price)).toBe(product.price)
+  static expected(product: TestProduct): Record<string, unknown> {
+    return {
+      name: product.name,
+      priceInCents: product.price,
+      priceLabel: formatCents(product.price),
+      category: product.category,
+      rating: expect.stringContaining(product.rating.toString().replace('.', ',')),
+    }
   }
 
   /**
@@ -108,10 +127,6 @@ export class ProductDetailPage extends BasePage {
     const naturalWidth = await this.image.evaluate((img) => (img as HTMLImageElement).naturalWidth)
 
     expect(naturalWidth, 'a imagem existe no DOM mas não foi carregada').toBeGreaterThan(0)
-  }
-
-  async expectOutOfStock(): Promise<void> {
-    await expect(this.stock).toContainText('esgotado')
   }
 
   async relatedProductCount(): Promise<number> {

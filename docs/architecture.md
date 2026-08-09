@@ -20,8 +20,10 @@ Eles se comunicam por **contratos explícitos**: a URL da aplicação (`BASE_URL
 atributos `data-testid` expostos pelo frontend; a URL da API e o formato das respostas
 entre frontend e backend. Nenhum import cruzado entre os projetos.
 
-As decisões do backend estão em **[api-architecture.md](api-architecture.md)** (ADR-020 em
-diante) — este documento cobre frontend e automação.
+As decisões do backend estão em **[api-architecture.md](api-architecture.md)** (ADR-020 a
+ADR-048) e as da suíte de automação em
+**[automation-architecture.md](automation-architecture.md)** (ADR-049 em diante) — este
+documento cobre o frontend e as decisões originais de E2E.
 
 ---
 

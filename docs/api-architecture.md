@@ -2,7 +2,8 @@
 
 Documento vivo, no mesmo formato de ADR usado em [architecture.md](architecture.md). A
 numeracao continua de onde aquele documento parou (ADR-019), porque as decisoes do backend
-convivem com as do frontend e da automacao no mesmo sistema.
+convivem com as do frontend e da automacao no mesmo sistema. A suite de automacao continua
+a serie em [automation-architecture.md](automation-architecture.md) (ADR-049 em diante).
 
 ---
 

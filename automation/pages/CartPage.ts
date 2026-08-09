@@ -72,15 +72,6 @@ export class CartPage extends BasePage {
     return readCents(this.total)
   }
 
-  async expectEmpty(): Promise<void> {
-    await expect(this.emptyState).toBeVisible()
-    await expect(this.items).toHaveCount(0)
-  }
-
-  async expectLineCount(count: number): Promise<void> {
-    await expect(this.items).toHaveCount(count)
-  }
-
   /**
    * Confere a identidade contábil do carrinho: total = subtotal + frete.
    *

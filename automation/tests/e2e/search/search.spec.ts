@@ -11,7 +11,7 @@ test.describe('Pesquisa de produtos', () => {
   test('encontra um produto existente', { tag: '@smoke' }, async ({ productsPage }) => {
     await productsPage.search(SEARCH_TERMS.single.term)
 
-    await productsPage.expectResultCount(SEARCH_TERMS.single.expectedCount)
+    await expect(productsPage.cards).toHaveCount(SEARCH_TERMS.single.expectedCount)
   })
 
   test('busca sem acento encontra categoria acentuada', async ({ productsPage }) => {
@@ -21,20 +21,20 @@ test.describe('Pesquisa de produtos', () => {
      */
     await productsPage.search(SEARCH_TERMS.unaccented.term)
 
-    await productsPage.expectResultCount(SEARCH_TERMS.unaccented.expectedCount)
+    await expect(productsPage.cards).toHaveCount(SEARCH_TERMS.unaccented.expectedCount)
   })
 
   test('termos fora de ordem devolvem o mesmo resultado', async ({ productsPage }) => {
     await productsPage.search(SEARCH_TERMS.multiWord.term)
 
-    await productsPage.expectResultCount(SEARCH_TERMS.multiWord.expectedCount)
+    await expect(productsPage.cards).toHaveCount(SEARCH_TERMS.multiWord.expectedCount)
   })
 
   test('busca casa com nome e também com descrição', async ({ productsPage }) => {
     // "fone" casa com "Fone Aurora Pro" (nome) e "Earbuds Nova Air" (descrição).
     await productsPage.search(SEARCH_TERMS.partial.term)
 
-    await productsPage.expectResultCount(SEARCH_TERMS.partial.expectedCount)
+    await expect(productsPage.cards).toHaveCount(SEARCH_TERMS.partial.expectedCount)
   })
 
   test('pesquisa sem resultado mostra estado vazio, não tela em branco', async ({
@@ -42,16 +42,17 @@ test.describe('Pesquisa de produtos', () => {
   }) => {
     await productsPage.search(SEARCH_TERMS.none.term)
 
-    await productsPage.expectEmptyState()
+    await expect(productsPage.emptyState).toBeVisible()
+    await expect(productsPage.cards).toHaveCount(0)
   })
 
   test('limpar a pesquisa restaura o catálogo', async ({ productsPage }) => {
     await productsPage.search(SEARCH_TERMS.single.term)
-    await productsPage.expectResultCount(SEARCH_TERMS.single.expectedCount)
+    await expect(productsPage.cards).toHaveCount(SEARCH_TERMS.single.expectedCount)
 
     await productsPage.clearSearch()
 
-    await productsPage.expectResultCount(CATALOG_SIZE)
+    await expect(productsPage.cards).toHaveCount(CATALOG_SIZE)
   })
 
   test('o termo pesquisado vai para a URL', async ({ productsPage, page }) => {
@@ -64,6 +65,6 @@ test.describe('Pesquisa de produtos', () => {
     await productsPage.filterByCategory('Periféricos')
     await productsPage.search('mouse')
 
-    await productsPage.expectResultCount(1)
+    await expect(productsPage.cards).toHaveCount(1)
   })
 })

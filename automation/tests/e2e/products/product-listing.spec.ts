@@ -9,24 +9,24 @@ test.describe('Listagem de produtos', () => {
   })
 
   test('exibe o catálogo completo', { tag: '@smoke' }, async ({ productsPage }) => {
-    await productsPage.expectResultCount(CATALOG_SIZE)
+    await expect(productsPage.cards).toHaveCount(CATALOG_SIZE)
     await expect(productsPage.resultCount).toHaveText(`${CATALOG_SIZE} produtos encontrados`)
   })
 
   test('filtra por categoria', async ({ productsPage }) => {
     await productsPage.filterByCategory(PRODUCTS.premiumLaptop.category)
 
-    await productsPage.expectResultCount(PRODUCTS_BY_CATEGORY.Notebooks)
+    await expect(productsPage.cards).toHaveCount(PRODUCTS_BY_CATEGORY.Notebooks)
   })
 
   test('filtro de estoque remove os produtos esgotados', async ({ productsPage }) => {
     await productsPage.filterByCategory('Monitores')
-    await productsPage.expectResultCount(PRODUCTS_BY_CATEGORY.Monitores)
+    await expect(productsPage.cards).toHaveCount(PRODUCTS_BY_CATEGORY.Monitores)
 
     await productsPage.toggleInStockOnly()
 
     // Um dos dois monitores está esgotado na massa de dados.
-    await productsPage.expectResultCount(PRODUCTS_BY_CATEGORY.Monitores - 1)
+    await expect(productsPage.cards).toHaveCount(PRODUCTS_BY_CATEGORY.Monitores - 1)
   })
 
   test('ordena por menor preço', async ({ productsPage }) => {
@@ -61,7 +61,7 @@ test.describe('Listagem de produtos', () => {
 
     await productsPage.clearFilters()
 
-    await productsPage.expectResultCount(CATALOG_SIZE)
+    await expect(productsPage.cards).toHaveCount(CATALOG_SIZE)
   })
 
   test('produto esgotado exibe o selo na grade', async ({ productsPage }) => {
@@ -80,7 +80,7 @@ test.describe('Filtros na URL', () => {
   test('abre a listagem já filtrada por categoria', async ({ productsPage }) => {
     await productsPage.openWith({ [PRODUCT_PARAMS.category]: 'Wearables' })
 
-    await productsPage.expectResultCount(PRODUCTS_BY_CATEGORY.Wearables)
+    await expect(productsPage.cards).toHaveCount(PRODUCTS_BY_CATEGORY.Wearables)
   })
 
   test('estado dos filtros sobrevive ao recarregar', async ({ productsPage, page }) => {
@@ -88,12 +88,12 @@ test.describe('Filtros na URL', () => {
       [PRODUCT_PARAMS.category]: 'Wearables',
       [PRODUCT_PARAMS.sort]: SORT.priceAsc,
     })
-    await productsPage.expectResultCount(PRODUCTS_BY_CATEGORY.Wearables)
+    await expect(productsPage.cards).toHaveCount(PRODUCTS_BY_CATEGORY.Wearables)
 
     await page.reload()
     await productsPage.waitForResults()
 
-    await productsPage.expectResultCount(PRODUCTS_BY_CATEGORY.Wearables)
+    await expect(productsPage.cards).toHaveCount(PRODUCTS_BY_CATEGORY.Wearables)
     await expect(page.getByTestId('product-category-filter')).toHaveValue('Wearables')
   })
 
@@ -101,7 +101,7 @@ test.describe('Filtros na URL', () => {
     // A URL é entrada não confiável: qualquer pessoa pode digitar qualquer coisa.
     await productsPage.openWith({ [PRODUCT_PARAMS.sort]: 'ordenacao-inexistente' })
 
-    await productsPage.expectResultCount(CATALOG_SIZE)
+    await expect(productsPage.cards).toHaveCount(CATALOG_SIZE)
   })
 
   test('atalho de categoria do dashboard leva à listagem filtrada', async ({
@@ -112,6 +112,6 @@ test.describe('Filtros na URL', () => {
     await dashboardPage.openCategory('Notebooks')
 
     await productsPage.waitForResults()
-    await productsPage.expectResultCount(PRODUCTS_BY_CATEGORY.Notebooks)
+    await expect(productsPage.cards).toHaveCount(PRODUCTS_BY_CATEGORY.Notebooks)
   })
 })

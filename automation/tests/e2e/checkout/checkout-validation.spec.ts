@@ -16,16 +16,16 @@ test.describe('Checkout — validação', () => {
     await checkoutPage.clearField('email')
     await checkoutPage.submit()
 
-    await checkoutPage.expectFieldError('fullName', CHECKOUT_MESSAGES.requiredFullName)
-    await checkoutPage.expectFieldError('cpf', CHECKOUT_MESSAGES.requiredCpf)
-    await checkoutPage.expectFieldError('zipCode', CHECKOUT_MESSAGES.requiredZipCode)
+    await expect(checkoutPage.fieldError('fullName')).toHaveText(CHECKOUT_MESSAGES.requiredFullName)
+    await expect(checkoutPage.fieldError('cpf')).toHaveText(CHECKOUT_MESSAGES.requiredCpf)
+    await expect(checkoutPage.fieldError('zipCode')).toHaveText(CHECKOUT_MESSAGES.requiredZipCode)
     await expect(page).toHaveURL(new RegExp(ROUTES.checkout))
   })
 
   test('nome sem sobrenome é rejeitado', async ({ checkoutPage }) => {
     await checkoutPage.placeOrder(CUSTOMER, { fullName: 'Gabriel' })
 
-    await checkoutPage.expectFieldError('fullName', CHECKOUT_MESSAGES.missingLastName)
+    await expect(checkoutPage.fieldError('fullName')).toHaveText(CHECKOUT_MESSAGES.missingLastName)
   })
 
   test('CPF com dígito verificador incorreto é rejeitado', async ({ checkoutPage }) => {
@@ -35,31 +35,31 @@ test.describe('Checkout — validação', () => {
      */
     await checkoutPage.placeOrder(CUSTOMER, { cpf: CPF.invalidCheckDigit })
 
-    await checkoutPage.expectFieldError('cpf', CHECKOUT_MESSAGES.invalidCpf)
+    await expect(checkoutPage.fieldError('cpf')).toHaveText(CHECKOUT_MESSAGES.invalidCpf)
   })
 
   test('CPF de dígitos repetidos é rejeitado', async ({ checkoutPage }) => {
     await checkoutPage.placeOrder(CUSTOMER, { cpf: CPF.repeatedDigits })
 
-    await checkoutPage.expectFieldError('cpf', CHECKOUT_MESSAGES.invalidCpf)
+    await expect(checkoutPage.fieldError('cpf')).toHaveText(CHECKOUT_MESSAGES.invalidCpf)
   })
 
   test('CPF incompleto é rejeitado', async ({ checkoutPage }) => {
     await checkoutPage.placeOrder(CUSTOMER, { cpf: CPF.incomplete })
 
-    await checkoutPage.expectFieldError('cpf', CHECKOUT_MESSAGES.invalidCpf)
+    await expect(checkoutPage.fieldError('cpf')).toHaveText(CHECKOUT_MESSAGES.invalidCpf)
   })
 
   test('CEP incompleto é rejeitado', async ({ checkoutPage }) => {
     await checkoutPage.placeOrder(CUSTOMER, { zipCode: '0131' })
 
-    await checkoutPage.expectFieldError('zipCode', CHECKOUT_MESSAGES.incompleteZipCode)
+    await expect(checkoutPage.fieldError('zipCode')).toHaveText(CHECKOUT_MESSAGES.incompleteZipCode)
   })
 
   test('telefone incompleto é rejeitado', async ({ checkoutPage }) => {
     await checkoutPage.placeOrder(CUSTOMER, { phone: '119876' })
 
-    await checkoutPage.expectFieldError('phone', CHECKOUT_MESSAGES.incompletePhone)
+    await expect(checkoutPage.fieldError('phone')).toHaveText(CHECKOUT_MESSAGES.incompletePhone)
   })
 
   test('complemento é opcional', async ({ checkoutPage, orderSuccessPage }) => {
@@ -71,36 +71,36 @@ test.describe('Checkout — validação', () => {
   test('o erro do campo some assim que ele é corrigido', async ({ checkoutPage }) => {
     await checkoutPage.clearField('fullName')
     await checkoutPage.submit()
-    await checkoutPage.expectFieldError('fullName', CHECKOUT_MESSAGES.requiredFullName)
+    await expect(checkoutPage.fieldError('fullName')).toHaveText(CHECKOUT_MESSAGES.requiredFullName)
 
     await checkoutPage.fillField('fullName', CUSTOMER.fullName)
 
-    await checkoutPage.expectNoFieldError('fullName')
+    await expect(checkoutPage.fieldError('fullName')).toBeHidden()
   })
 })
 
 test.describe('Checkout — máscaras', () => {
   test('CPF, CEP e telefone são formatados durante a digitação', async ({ checkoutPage }) => {
     await checkoutPage.fillField('cpf', CPF.valid)
-    await checkoutPage.expectMaskedValue('cpf', EXPECTED_MASKS.cpf)
+    await expect(checkoutPage.field('cpf')).toHaveValue(EXPECTED_MASKS.cpf)
 
     await checkoutPage.fillField('zipCode', CUSTOMER.zipCode)
-    await checkoutPage.expectMaskedValue('zipCode', EXPECTED_MASKS.zipCode)
+    await expect(checkoutPage.field('zipCode')).toHaveValue(EXPECTED_MASKS.zipCode)
 
     await checkoutPage.fillField('phone', CUSTOMER.phone)
-    await checkoutPage.expectMaskedValue('phone', EXPECTED_MASKS.mobilePhone)
+    await expect(checkoutPage.field('phone')).toHaveValue(EXPECTED_MASKS.mobilePhone)
   })
 
   test('telefone fixo usa formato de 8 dígitos', async ({ checkoutPage }) => {
     await checkoutPage.fillField('phone', '1133334444')
 
-    await checkoutPage.expectMaskedValue('phone', EXPECTED_MASKS.landlinePhone)
+    await expect(checkoutPage.field('phone')).toHaveValue(EXPECTED_MASKS.landlinePhone)
   })
 
   test('a máscara ignora letras e corta o excesso de dígitos', async ({ checkoutPage }) => {
     await checkoutPage.fillField('cpf', `abc${CPF.valid}999999`)
 
-    await checkoutPage.expectMaskedValue('cpf', EXPECTED_MASKS.cpf)
+    await expect(checkoutPage.field('cpf')).toHaveValue(EXPECTED_MASKS.cpf)
   })
 })
 
@@ -115,6 +115,7 @@ test.describe('Checkout — pré-condições', () => {
   })
 
   test('dados pessoais vêm pré-preenchidos da sessão', async ({ checkoutPage }) => {
-    await checkoutPage.expectPrefilledFrom(CUSTOMER.fullName, CUSTOMER.email)
+    await expect(checkoutPage.field('fullName')).toHaveValue(CUSTOMER.fullName)
+    await expect(checkoutPage.field('email')).toHaveValue(CUSTOMER.email)
   })
 })

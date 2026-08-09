@@ -1,5 +1,6 @@
 import { PRODUCTS } from '@data/products'
 import { expect, test } from '@fixtures/test'
+import { ProductDetailPage } from '@pages/ProductDetailPage'
 
 test.describe('Página do produto', () => {
   test(
@@ -8,7 +9,9 @@ test.describe('Página do produto', () => {
     async ({ productDetailPage }) => {
       await productDetailPage.openProduct(PRODUCTS.headphone.id)
 
-      await productDetailPage.expectProductDetails(PRODUCTS.headphone)
+      expect(await productDetailPage.displayedProduct()).toMatchObject(
+        ProductDetailPage.expected(PRODUCTS.headphone),
+      )
       await expect(productDetailPage.description).toContainText('cancelamento ativo')
     },
   )
@@ -30,7 +33,9 @@ test.describe('Página do produto', () => {
     await productsPage.openProduct(PRODUCTS.mouse.name)
 
     await productDetailPage.waitUntilReady()
-    await productDetailPage.expectProductDetails(PRODUCTS.mouse)
+    expect(await productDetailPage.displayedProduct()).toMatchObject(
+      ProductDetailPage.expected(PRODUCTS.mouse),
+    )
   })
 
   test('produto inexistente exibe erro em vez de tela vazia', async ({ productDetailPage }) => {
@@ -42,8 +47,8 @@ test.describe('Página do produto', () => {
   test('produto esgotado não pode ser comprado', async ({ productDetailPage }) => {
     await productDetailPage.openProduct(PRODUCTS.outOfStock.id)
 
-    await productDetailPage.expectOutOfStock()
-    await productDetailPage.expectAddButtonHidden()
+    await expect(productDetailPage.stock).toContainText('esgotado')
+    await expect(productDetailPage.addButton).toBeHidden()
   })
 
   test('exibe produtos relacionados da mesma categoria', async ({ productDetailPage }) => {
@@ -59,6 +64,6 @@ test.describe('Página do produto', () => {
     await productDetailPage.increaseQuantity(PRODUCTS.premiumLaptop.stock - 1)
 
     expect(await productDetailPage.selectedQuantity()).toBe(PRODUCTS.premiumLaptop.stock)
-    await productDetailPage.expectIncreaseDisabled()
+    await expect(productDetailPage.increaseButton).toBeDisabled()
   })
 })

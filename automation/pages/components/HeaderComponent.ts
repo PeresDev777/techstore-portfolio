@@ -43,17 +43,4 @@ export class HeaderComponent {
     if ((await this.cartCount.count()) === 0) return 0
     return Number(await this.cartCount.textContent())
   }
-
-  async expectCartCount(expected: number): Promise<void> {
-    if (expected === 0) {
-      await expect(this.cartCount).toBeHidden()
-      return
-    }
-
-    await expect(this.cartCount).toHaveText(String(expected))
-  }
-
-  async expectLoggedInAs(name: string): Promise<void> {
-    await expect(this.userName).toHaveText(name)
-  }
 }

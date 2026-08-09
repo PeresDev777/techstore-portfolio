@@ -115,10 +115,6 @@ export class ProductsPage extends BasePage {
     )
   }
 
-  async expectResultCount(count: number): Promise<void> {
-    await expect(this.cards).toHaveCount(count)
-  }
-
   /** Preços exibidos, em centavos, na ordem em que aparecem na grade. */
   async visiblePrices(): Promise<number[]> {
     return this.byTestId('product-price').evaluateAll((nodes) =>
@@ -133,10 +129,5 @@ export class ProductsPage extends BasePage {
 
   async priceOf(name: string): Promise<number> {
     return readCents(this.cards.filter({ hasText: name }).getByTestId('product-price'))
-  }
-
-  async expectEmptyState(): Promise<void> {
-    await expect(this.emptyState).toBeVisible()
-    await expect(this.cards).toHaveCount(0)
   }
 }

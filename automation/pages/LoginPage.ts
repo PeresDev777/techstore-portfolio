@@ -16,17 +16,24 @@ export class LoginPage extends BasePage {
     return this.byTestId('login-password')
   }
 
-  private get submitButton(): Locator {
+  /**
+   * Botao de envio. Publico porque o spec assevera o estado de carregamento nele.
+   *
+   * Expor o LOCATOR nao viola o ADR-003: a string do seletor continua aqui dentro. O que
+   * o spec recebe e um objeto ja resolvido — trocar `data-testid` por outra estrategia
+   * segue sendo uma mudanca em um arquivo so.
+   */
+  get submitButton(): Locator {
     return this.byTestId('login-submit')
   }
 
   /** Erro geral do formulário (credenciais recusadas pelo serviço). */
-  private get formError(): Locator {
+  get formError(): Locator {
     return this.byTestId('login-error')
   }
 
   /** Erro de um campo específico. A aplicação nomeia como `<campo>-error`. */
-  private fieldError(field: 'email' | 'password'): Locator {
+  fieldError(field: 'email' | 'password'): Locator {
     return this.byTestId(`${field}-error`)
   }
 
@@ -72,22 +79,5 @@ export class LoginPage extends BasePage {
     await this.emailInput.fill('')
     await this.passwordInput.fill('')
     await this.submitButton.click()
-  }
-
-  async expectFormError(message: string): Promise<void> {
-    await expect(this.formError).toHaveText(message)
-  }
-
-  async expectFieldError(field: 'email' | 'password', message: string): Promise<void> {
-    await expect(this.fieldError(field)).toHaveText(message)
-  }
-
-  async expectNoFieldError(field: 'email' | 'password'): Promise<void> {
-    await expect(this.fieldError(field)).toBeHidden()
-  }
-
-  /** O botão exibe estado de carregamento enquanto a autenticação está em curso. */
-  async expectSubmitting(): Promise<void> {
-    await expect(this.submitButton).toHaveAttribute('aria-busy', 'true')
   }
 }

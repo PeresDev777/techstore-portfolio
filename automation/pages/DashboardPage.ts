@@ -1,4 +1,4 @@
-import { expect, type Locator } from '@playwright/test'
+import type { Locator } from '@playwright/test'
 
 import { BasePage } from '@pages/BasePage'
 import { HeaderComponent } from '@pages/components/HeaderComponent'
@@ -10,9 +10,8 @@ export class DashboardPage extends BasePage {
 
   readonly header = new HeaderComponent(this.page)
 
-  async expectGreeting(name: string): Promise<void> {
-    await expect(this.readyLocator).toContainText(name)
-  }
+  /** Saudacao com o nome do usuario. Publico para que o spec assevere o que espera dele. */
+  readonly greeting: Locator = this.byTestId('dashboard-title')
 
   /** Atalhos por categoria levam à listagem já filtrada. */
   async openCategory(category: string): Promise<void> {
