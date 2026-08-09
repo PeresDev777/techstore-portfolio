@@ -11,7 +11,7 @@ on:
   # O horario definitivo e deliberado: a noturna e a UNICA que roda os cenarios `@slow`
   # (concorrencia), e falhar de madrugada da o dia inteiro para investigar.
   schedule:
-    - cron: '20 18 * * *'
+    - cron: '57 18 * * *'
   # Permite disparar manualmente pela aba Actions.
   workflow_dispatch:
 
