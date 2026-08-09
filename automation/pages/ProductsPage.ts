@@ -53,30 +53,66 @@ export class ProductsPage extends BasePage {
     await expect.poll(() => new URL(this.page.url()).searchParams.get(param)).toBe(value)
   }
 
-  async search(term: string): Promise<void> {
-    await this.searchInput.fill(term)
-    // A busca tem debounce de 300 ms; a URL só muda quando ele expira.
-    await this.waitForParam(PRODUCT_PARAMS.search, term || null)
+  /**
+   * Aplica um filtro e so devolve o controle quando a RESPOSTA da API chegou.
+   *
+   * Esta e a terceira tentativa de sincronizar esta tela, e as duas anteriores erraram o
+   * alvo pelo mesmo motivo — esperavam por um efeito, nao pela causa:
+   *
+   * | Espera | Por que nao basta |
+   * | --- | --- |
+   * | O skeleton sumiu | Logo apos o clique ele ainda NAO apareceu (ADR-018) |
+   * | A query string mudou | A URL muda antes de a requisicao sair |
+   * | A grade tem cards | Sao os cards ANTIGOS; a troca vem depois |
+   *
+   * O ultimo caso e o mais traicoeiro e so apareceu no CI: as tres condicoes passavam
+   * contra o estado ANTERIOR, o teste seguia, e a grade esvaziava por um instante enquanto
+   * a resposta nova era renderizada. `visiblePrices()` lia `[]` ali.
+   *
+   * A resposta HTTP e a unica causa observavel que nao existe antes da acao. Registrar o
+   * `waitForResponse` ANTES de agir e o que evita perde-la.
+   */
+  private async applyingFilter(action: () => Promise<void>): Promise<void> {
+    const responded = this.page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        new URL(response.url()).pathname.endsWith('/products'),
+      { timeout: 15_000 },
+    )
+
+    await action()
+    await responded
     await this.waitForResults()
+  }
+
+  async search(term: string): Promise<void> {
+    await this.applyingFilter(async () => {
+      await this.searchInput.fill(term)
+      // A busca tem debounce de 300 ms; a URL só muda quando ele expira.
+      await this.waitForParam(PRODUCT_PARAMS.search, term || null)
+    })
   }
 
   async clearSearch(): Promise<void> {
-    await this.byTestId('product-search-clear').click()
-    await this.waitForParam(PRODUCT_PARAMS.search, null)
-    await this.waitForResults()
+    await this.applyingFilter(async () => {
+      await this.byTestId('product-search-clear').click()
+      await this.waitForParam(PRODUCT_PARAMS.search, null)
+    })
   }
 
   async filterByCategory(category: string): Promise<void> {
-    await this.byTestId('product-category-filter').selectOption(category)
-    await this.waitForParam(PRODUCT_PARAMS.category, category)
-    await this.waitForResults()
+    await this.applyingFilter(async () => {
+      await this.categoryFilter.selectOption(category)
+      await this.waitForParam(PRODUCT_PARAMS.category, category)
+    })
   }
 
   async sortBy(sort: string): Promise<void> {
-    await this.byTestId('product-sort').selectOption(sort)
-    // "relevance" é o padrão e some da URL em vez de aparecer como parâmetro.
-    await this.waitForParam(PRODUCT_PARAMS.sort, sort === 'relevance' ? null : sort)
-    await this.waitForResults()
+    await this.applyingFilter(async () => {
+      await this.byTestId('product-sort').selectOption(sort)
+      // "relevance" é o padrão e some da URL em vez de aparecer como parâmetro.
+      await this.waitForParam(PRODUCT_PARAMS.sort, sort === 'relevance' ? null : sort)
+    })
   }
 
   /**
@@ -91,16 +127,18 @@ export class ProductsPage extends BasePage {
     const checkbox = this.byTestId('product-in-stock-filter')
     const wasChecked = await checkbox.isChecked()
 
-    await checkbox.click()
-    await expect(checkbox).toBeChecked({ checked: !wasChecked })
-    await this.waitForParam(PRODUCT_PARAMS.inStock, wasChecked ? null : '1')
-    await this.waitForResults()
+    await this.applyingFilter(async () => {
+      await checkbox.click()
+      await expect(checkbox).toBeChecked({ checked: !wasChecked })
+      await this.waitForParam(PRODUCT_PARAMS.inStock, wasChecked ? null : '1')
+    })
   }
 
   async clearFilters(): Promise<void> {
-    await this.byTestId('product-clear-filters').click()
-    await expect.poll(() => new URL(this.page.url()).search).toBe('')
-    await this.waitForResults()
+    await this.applyingFilter(async () => {
+      await this.byTestId('product-clear-filters').click()
+      await expect.poll(() => new URL(this.page.url()).search).toBe('')
+    })
   }
 
   /**
