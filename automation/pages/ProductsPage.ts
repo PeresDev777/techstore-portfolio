@@ -106,13 +106,24 @@ export class ProductsPage extends BasePage {
   /**
    * Aguarda a grade estar estável.
    *
-   * Duas condições, não uma: o skeleton precisa ter saído E a tela precisa estar em um
-   * estado terminal (grade com produtos ou estado vazio). Só a primeira condição deixaria
-   * passar o instante em que a grade foi desmontada e ainda não voltou.
+   * TRÊS condições, e a terceira custou uma execução vermelha no CI para aparecer.
+   *
+   * As duas primeiras — o skeleton saiu, e existe grade ou estado vazio — deixam passar um
+   * instante em que o CONTAINER da grade já está montado e ainda não tem cards dentro. O
+   * teste de ordenação leu uma lista vazia nesse instante e falhou com
+   * `expect(prices[0]).toBe(44990)` recebendo `undefined`.
+   *
+   * "O elemento existe" e "o elemento tem conteúdo" são perguntas diferentes. É o ADR-018
+   * um nível mais fundo: esperar pela causa observável significa esperar pelo DADO, não
+   * pelo invólucro que vai contê-lo.
+   *
+   * A terceira condição usa `.or(emptyState)` para não quebrar a busca sem resultado, onde
+   * zero cards é o estado correto e terminal.
    */
   async waitForResults(): Promise<void> {
     await expect(this.byTestId('products-loading')).toBeHidden()
     await expect(this.byTestId('products-grid').or(this.emptyState)).toBeVisible()
+    await expect(this.cards.first().or(this.emptyState)).toBeVisible()
   }
 
   async openProduct(name: string): Promise<void> {
