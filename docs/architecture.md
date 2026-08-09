@@ -412,6 +412,28 @@ Efeito colateral medido: o arquivo de carrinho caiu de 1,9 min para 1,0 min, por
 timeouts de 10 s desapareceram. **Corrigir a corrida deixou a suíte mais rápida, não mais
 lenta** — a espera explícita custa milissegundos, e a implícita custava o timeout inteiro.
 
+**Terceira ocorrência — e a que finalmente nomeia o padrão.** A primeira execução da
+regressão na `main` terminou verde com *"2 flaky"*: os cenários de ordenação liam a grade
+vazia. Três esperas já haviam sido tentadas nesta tela, e cada uma esperava por um
+**efeito** em vez da causa:
+
+| Espera | Por que não basta |
+| --- | --- |
+| O skeleton sumiu | Logo após o clique ele ainda **não** apareceu |
+| A query string mudou | A URL muda antes de a requisição sair |
+| A grade tem cards | São os cards **antigos**; a troca vem depois |
+
+A terceira é a mais traiçoeira: as condições passam contra o estado anterior, o teste
+segue, e a grade esvazia por um instante enquanto a resposta nova é renderizada.
+
+A causa observável é a **resposta HTTP** — a única coisa que não existe antes da ação.
+`applyingFilter()` registra o `waitForResponse` antes de agir, como `mutatingCart()` já
+fazia para as mutações.
+
+O enunciado final do ADR, depois de três tentativas: **espere por algo que só passa a
+existir por causa da ação.** Estado que já era verdade antes nunca é ponto de
+sincronização.
+
 ---
 
 ## ADR-019 — Política de evidências
