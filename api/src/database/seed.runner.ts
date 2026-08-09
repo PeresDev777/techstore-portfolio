@@ -43,6 +43,52 @@ export const SEEDED_TABLES = [
   'users',
 ] as const
 
+/**
+ * Hashes de senha da massa, calculados UMA VEZ por processo.
+ *
+ * bcrypt e lento por design, e essa lentidao e proposital para senha real. Aqui ela era
+ * paga repetidamente por nada: `runSeed` roda a cada `POST /test/reset`, e a suite de
+ * automacao chama o reset antes de CADA cenario.
+ *
+ * Medido antes desta mudanca:
+ *
+ * ```
+ * POST /test/reset  1260 ms
+ * POST /auth/login   283 ms   (um bcrypt.compare)
+ * ```
+ *
+ * Quatro usuarios x ~283 ms explicavam quase todo o tempo do reset. Com 160 cenarios, o
+ * seed gastava mais de tres minutos por execucao da suite hasheando as MESMAS quatro
+ * senhas conhecidas.
+ *
+ * Pior: o hash so e usado no `create`. No caminho do `update` — que e o de toda execucao
+ * depois da primeira — ele era calculado e **descartado**, como o comentario abaixo ja
+ * registrava sem tirar a conclusao.
+ *
+ * O cache guarda a `Promise`, e nao o valor: dois resets simultaneos compartilham o mesmo
+ * calculo em vez de dispararem dois.
+ *
+ * **Duas consequencias que valem ser ditas em voz alta:**
+ *
+ * 1. Usuarios com a mesma senha passam a compartilhar o mesmo salt. Em dado real isso
+ *    seria um defeito; aqui as senhas sao publicas e estao versionadas em `seed-data.ts`
+ *    — o salt nao protege nada que ja nao esteja no repositorio.
+ * 2. O cache vive enquanto o processo viver. Em producao o seed nao roda (o passo e apenas
+ *    `migrate deploy`) e o modulo de teste sequer e registrado (ADR-041).
+ */
+const passwordHashes = new Map<string, Promise<string>>()
+
+function hashOnce(password: string): Promise<string> {
+  let pending = passwordHashes.get(password)
+
+  if (!pending) {
+    pending = bcrypt.hash(password, BCRYPT_ROUNDS)
+    passwordHashes.set(password, pending)
+  }
+
+  return pending
+}
+
 export async function runSeed(prisma: PrismaClient): Promise<SeedSummary> {
   const categoryIds = new Map<string, string>()
 
@@ -57,12 +103,12 @@ export async function runSeed(prisma: PrismaClient): Promise<SeedSummary> {
   }
 
   for (const user of USERS) {
-    const passwordHash = await bcrypt.hash(user.password, BCRYPT_ROUNDS)
-
     /*
      * O hash NAO entra no `update`. bcrypt gera um salt novo a cada chamada, entao
-     * reexecutar o seed produziria um hash diferente e uma escrita inutil a cada rodada.
+     * reexecutar o seed produziria um hash diferente e uma escrita inutil a cada rodada —
+     * e e exatamente por isso que ele pode ser memoizado (ver `hashOnce`).
      */
+    const passwordHash = await hashOnce(user.password)
     await prisma.user.upsert({
       where: { id: user.id },
       update: {

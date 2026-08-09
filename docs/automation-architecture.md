@@ -243,10 +243,21 @@ POST /auth/login :  283 ms
 aritmética: o seed executa `bcrypt.hash` para os 4 usuários a cada reinício, e
 4 × 283 ms ≈ 1130 ms dos 1260 ms.
 
-Fica registrado como **limite conhecido**, não como decisão: a correção é do lado da API —
-memoizar o hash por (senha, rounds) no processo, já que a massa é determinística e o próprio
-`seed.runner.ts` documenta que o hash não entra no `update`. No CI o impacto é menor porque
-`BCRYPT_ROUNDS` é 10 em vez de 12.
+**Corrigido na sequência, do lado da API.** `seed.runner.ts` passou a memoizar o hash por
+senha no processo — o hash só é usado no `create`, e no caminho do `update`, que é o de toda
+execução depois da primeira, ele era calculado e **descartado**. O comentário do arquivo já
+registrava esse fato desde o começo sem tirar a conclusão.
+
+| | Antes | Worker-scope | + memoização |
+| --- | --- | --- | --- |
+| `POST /test/reset` | 1260 ms | — | **410 ms** |
+| Suíte de API | 84 s | 75 s | **27 s** |
+| Suíte completa (160) | 276 s | — | **125 s** |
+
+Três vezes mais rápido na suíte de API, e mais de dois minutos por execução completa. A
+lição vale além do número: **a otimização que eu previ rendeu 11%, e foi medir o resto que
+achou o ganho de 67%.** Otimizar o que se supõe ser caro é como testar o que se supõe estar
+quebrado.
 
 **Limite da decisão em si.** O access token vale 900 s. Um worker que rodasse mais de 15
 minutos veria os tokens expirarem no meio. As suítes levam ~1,4 min e ~30 s — uma ordem de
